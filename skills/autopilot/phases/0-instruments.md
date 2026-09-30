@@ -122,8 +122,10 @@ git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1 && ! grep -qs '^\.autopilot/s
   [ -s "$G" ] && [ -n "$(tail -c1 "$G")" ] && printf '\n' >> "$G"   # файл без \n в конце склеит строки
   printf '.autopilot/serve.*\n' >> "$G"
 }
-python3 "$ROOT/.autopilot/sync.py"      # снимок в страницу + сервер, если он не поднят
+python3 "$ROOT/.autopilot/sync.py" --check-update   # снимок + сервер + сверка версии навыка
 ```
+
+**A line starting with `↑` means a newer Autopilot is out** — it carries the version and the update command. Put it into the opening block as it is: one line, not a question, and never an update in the middle of a run. No network, or `AUTOPILOT_NO_UPDATE_CHECK=1`, and the check stays silent.
 
 **That one line is the whole of it, and what it prints is the address.** `sync.py` reuses the port recorded in `serve.pid` whenever it is free — so the link the user already copied keeps working across restarts — and it starts the server detached from your session, so the end of a session no longer takes the dashboard down with it. It kills only processes carrying **this run's** `--directory`: the machine-wide pid file that once handed a second project the first one's port cost a whole flight (2026-08-18), and a sweep of «every `http.server` except a whitelist» killed a live run's server mid-flight (2026-08-19). Never write either.
 

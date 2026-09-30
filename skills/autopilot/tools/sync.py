@@ -294,14 +294,14 @@ def check_update(state):
             remote = _version(r.read(65536).decode("utf-8", "replace"))
     except (urllib.error.URLError, OSError, ValueError):
         return None
-    if not local or not remote or remote <= local:
+    if not remote or (local and remote <= local):
         return None
     home = _norm(os.path.expanduser("~"))
     glob_flag = " -g" if _norm(skill).startswith(home + "/.") else ""
     v = lambda t: ".".join(map(str, t))
     return ("вышла версия Autopilot %s (у тебя %s): npx skills update autopilot%s · "
             "что нового — github.com/%s/blob/main/CHANGELOG.md"
-            % (v(remote), v(local), glob_flag, REPO))
+            % (v(remote), v(local) if local else "без номера", glob_flag, REPO))
 
 
 # ── этапы ───────────────────────────────────────────────────────────────────

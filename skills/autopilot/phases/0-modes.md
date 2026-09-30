@@ -25,6 +25,7 @@ A mode decides two separate things — how much the user is asked about the *pro
   Режим: полуавтомат · глубина: обычная — спрошу только то, что в задаче не определено, дальше соберу сам.
   Дашборд открыл — обновляется сам: http://localhost:PORT/dashboard.html
   Память проекта — AGENTS.md (+ CLAUDE.md со ссылкой).
+  ↑ Вышла версия Autopilot 2.1.0 (у тебя 2.0.0): npx skills update autopilot -g   ← только если sync.py её напечатал
 
   Можно переключить в любой момент, просто скажи:
   • «полный автомат» — не спрашиваю вообще ничего
