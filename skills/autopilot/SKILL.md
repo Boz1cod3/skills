@@ -168,6 +168,8 @@ This skill describes a process, not the product. Its numbers — tiers, question
 
 The rules below are the same kind of thing. Each one is here because it was paid for, and each is an argument — arguments can lose. Where following one would make the result worse for the user, break it deliberately, say so in one line, and carry on. That is a decision, and decisions get recorded. What is never acceptable is breaking one quietly, or keeping one because it is written down.
 
+**The rules that set the run's cost are the exception to that licence** — what goes to repair, how many reviewers look, how many times a ticket is re-reviewed. Widening them «for quality» is how a run doubles its bill with nobody having decided to: each widening is a repair round and two re-reviews. Break one only by telling the user in one line what it will cost, never by judgement alone.
+
 **Five rules are not calibration and do not lose.** They hold in every mode, at every depth, at every tier:
 
 1. **A requirement is removed only by the user**, in their own words, quoted into the manifest — and appended to the brief, where the independent gates can see it. The same holds for one they add mid-flight.

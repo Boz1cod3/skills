@@ -8,7 +8,7 @@ The three counters this file spends — `repairs`, `retries`, `handoffs` — are
 
 ## Repair — two kinds, two addresses
 
-**First: not every finding comes here.** Only what the reviewer put in `BLOCKING` — a requirement not delivered, an invented fact about the user, unrequested surface, a red suite — becomes a дозапрос. Craft judgement calls go to `state.js` under `concerns` and are triaged once, at the end, by the whole-project pass (`phases/6-review.md`, `phases/8-final.md`). Sending every finding down this path is what makes reviewing everything feel unaffordable: thirteen repairs across nine tickets, each adding about forty percent to its ticket's clock.
+**First: not every finding comes here.** Only what the reviewer put in `BLOCKING` — a requirement not delivered, an invented fact about the user, unrequested surface, a red suite, a defect in the foundation that later tickets build on — becomes a дозапрос, and it carries those lines verbatim and nothing else. Craft judgement calls go to `state.js` under `concerns` and are triaged once, at the end, by the whole-project pass (`phases/6-review.md`, `phases/8-final.md`). Sending every finding down this path is what makes reviewing everything feel unaffordable: thirteen repairs across nine tickets, each adding about forty percent to its ticket's clock.
 
 A ticket comes back imperfect in two very different ways, and telling them apart is the whole of this section:
 

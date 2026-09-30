@@ -61,7 +61,7 @@ A reviewer knows nothing you do not hand it — the same rule as for an executor
 | the ticket body and its acceptance criteria | ✓ | ✓ |
 | whatever the repo documents about how code is written | — | ✓ |
 | **`prompts/craft-review.md`, by path** — the smells, the assertion-level testing check, the return format. The path is `skillDir` in `state.js` | — | ✓ |
-| what it must not do: repair nothing, refactor nothing, open no files outside the diff to «понять получше» | ✓ | ✓ |
+| what it must not do: repair nothing, refactor nothing, open no files outside the diff to «понять получше», invoke no skills, spawn no agents | ✓ | ✓ |
 
 **Give each one only its own axes.** A reviewer handed material for an axis it was not asked to judge will judge it anyway, badly and without saying so — and two overlapping half-reviews are what the separation of axes exists to prevent.
 
@@ -130,12 +130,16 @@ What stays here is the part you decide:
 
 What is always blocking, no judgement involved:
 
+- **In the foundation — ticket 01, and any ticket that builds a shared module, the schema or an interface other tickets call — a defect the following tickets will build on.** A wrong key in the schema, a shared client that fails the next ticket's call, access that ignores the boundary the spec drew: fixed now it is one repair, found at the end it is every ticket that stood on it. Say in the reviewer's prompt that the ticket is foundation; without that the reviewer cannot apply this line.
+
 - **Manifest `partial` or `missing`** — a requirement the user asked for is not delivered. This is the one category no ослабление ever touches: the whole framework exists to catch it, and «поправим потом» is how it stops being caught.
 - **Craft *invented fact*** — a plausible-looking price, address or text standing where the user's own fact belongs. It ships as truth if it ships at all.
 - **Spec *extra*** that adds surface nobody asked for — removed, unless the rest genuinely needs it, and then one line in the commit message says so.
 - **A red suite.** Nothing is committed on red, ever.
 
 Everything else — Craft judgement calls, style, structure, a test set that is bigger than its seams — goes to `state.js` under `concerns` with its file and line, and travels to the final report. **It is not a дозапрос and does not delay the commit.**
+
+**The дозапрос carries the `BLOCKING` lines, verbatim, and nothing else.** Not «блокирующего нет, но раз уж…», not three findings from `FINDINGS` you agree with: the reviewer decided what blocks, and the orchestrator that re-decides it has turned the loosening below back into a repair queue. If you think a non-blocking finding must be fixed now, that is the cost rule in `SKILL.md` — one line to the user, not a quiet widening.
 
 **This is a deliberate loosening, and here is what it costs.** Deferred findings accumulate, and a list nobody reads is a silent discard — so the list has one reader by construction: the whole-project pass in `phases/8-final.md` triages it, and what it decides is worth fixing becomes a ticket like any other, reviewed and committed the same way. What is not fixed is named in the report. The alternative — repairing every judgement call inside the ticket that surfaced it — was measured at thirteen repairs across nine tickets, each adding roughly forty percent to its ticket's clock, for findings that were mostly not what the run was at risk from.
 
