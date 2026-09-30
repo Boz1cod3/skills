@@ -89,7 +89,7 @@ At tier T0 there was one context and no tickets, so `concerns` is short and this
 | memory | как этим пользоваться завтра | the repo, `interfaces.md`, the memory file, the tier | `spec.md`, tickets |
 | ADR *(tier T2+)* | почему сделано именно так | `spec.md`, `manifest.md` | the repo — it documents decisions, not code |
 
-The memory agent writes the full description of the project into `CLAUDE.md` or `AGENTS.md` — architecture, key files, conventions, environment, tests, gotchas — scaled to the tier, folding in what `interfaces.md` accumulated. Like the blind checker, **it does not receive `spec.md` or the tickets**: a memory written from the plan documents intentions, and the next session has no way to tell the difference.
+The memory agent writes the project memory — commands, pointers, traps, environment; at T2+ also `docs/architecture.md` — or, when the file is the user's own (`memoryOwner: "user"`), a proposal in `memory-proposal.md` instead. Like the blind checker, **it does not receive `spec.md` or the tickets**: a memory written from the plan documents intentions.
 
 The ADR agent is the mirror image and that is why it cannot be the same one. **`spec.md` dies with the run**, and with it every «почему так» in it — the reason for the data model, what the build proved wrong at ticket four, which word the project uses for which thing. Six months later the next session reads working code and no reason for any of it, and re-opens decisions that were settled here. At tier T2+ that is worth three files in `docs/adr/`; below it, the memory file carries what little there is.
 
@@ -149,6 +149,7 @@ So build each section from its source, opened now:
 | Что пошло не по плану | every `D##` row in `manifest.md`, plus any ticket whose `handoffs` reached 2 — that is the plan reporting its own coarse cut, and it is the only place the counter is ever read |
 | Открытые вопросы | `state.js` → `blind`, plus anything in `coverage` that ended up not built |
 | Запустить / Где что лежит | `state.js` → `memoryFile`, `briefFile`, and the commands the memory agent verified |
+| Память проекта *(only when `memoryOwner` is `user`)* | `memory-proposal.md` — one question: «Предлагаю дополнить твой `CLAUDE.md`: N пунктов — применить?»; in full, only a line naming the file |
 
 Two of these are worth naming, because memory gets them wrong in a specific direction. **«Готово» comes from the blind checker, not from your own bookkeeping** — the manifest says what you believe was delivered, and the whole point of the previous section is that those two can disagree. And **«Что не вошло» comes from the rows, not from recollection**: a requirement dropped in the first ten minutes of a three-hour run is exactly the one you will not remember, and it is quoted in the file.
 
@@ -215,7 +216,7 @@ npm install && npm run dev
 
 ## Где что лежит
 
-- Описание проекта для следующего раза — `AGENTS.md` в корне
+- Описание проекта для следующего раза — `AGENTS.md` в корне (или предложение дополнить твой `CLAUDE.md`)
 - Почему сделано именно так — `docs/adr/` (если проект крупный)
 - Прогресс и цифры — `.autopilot/dashboard.html`
 - Твоя изначальная задача — `.autopilot/<дата>-<проект>/<дата>-brief.md`

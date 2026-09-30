@@ -23,6 +23,7 @@ window.STATE =
   "tier": "T2",
   "briefFile": "2026-08-07-brief.md",
   "memoryFile": "AGENTS.md",
+  "memoryOwner": "autopilot",
   "skillDir": "/Users/x/.claude/skills/autopilot",
   "startedAt": "2026-08-07T14:02:06+03:00",
   "updatedAt": "2026-08-07T15:31:43+03:00",
@@ -93,7 +94,7 @@ Ticket `status`: `pending` · `in-progress` · `review` · `repair` · `done` ·
 `wave` and `zone` come from Phase 4 — the wave decides what flies together, the zone is why it may.
 `tests` is the last **full** suite run; `blind` stays `null` until the final phase.
 `coverage` is the independent check at gate G2 (`phases/3-spec.md`) — written once, when the spec is done, and read again by the Phase 8 report. `null` means the check has not run yet, **not** that it found nothing: a run that reaches the build with `coverage: null` skipped a gate.
-`memoryFile` is the project memory chosen in Phase 0 — `CLAUDE.md` or `AGENTS.md`, see `phases/0-memory.md`. A resume reads that file first.
+`memoryFile` and `memoryOwner` are the project memory chosen in Phase 0 and whose it is — see `phases/0-memory.md`. A resume reads that file first.
 `polish` stays `null` on every run without the доводка parameter, which is most of them. Its shape and its `P`-prefixed tickets are in `phases/polish.md`.
 
 **Never put a secret value in here.** `emptyEnv` holds names only — the whole point of the list.

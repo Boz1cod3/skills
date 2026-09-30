@@ -122,11 +122,7 @@ The register starts with this flight's own row and grows by one row per run. The
 
 ## 5. Raise the project memory
 
-The repo needs a file that tells the **next** session what this project is — `CLAUDE.md` or `AGENTS.md`. Which one is decided by detection, never by a question; the skeleton is written now and finished in Phase 8. **Read `phases/0-memory.md`** — the detection table and the skeleton, and nothing else applies until the build is over.
-
-Two things happen here: pick the file, write the skeleton between the `<!-- autopilot:start -->` markers. Announce the choice in one line inside the opening block, together with the mode — and do not wait for a reply.
-
-Record the chosen file in `state.js` as `memoryFile`, and note it in the Phase 8 report. Do **not** read `phases/9-memory.md` here — everything in it belongs to Phase 5 and Phase 8.
+The repo needs a file that tells the **next** session what this project is. **Read `phases/0-memory.md`**: it picks the file — `AGENTS.md` with a `CLAUDE.md` pointer, or the user's own file, which the run does not write into — and holds the skeleton. Announce the choice in one line inside the opening block and do not wait for a reply. Record `memoryFile` and `memoryOwner` in `state.js`. Do **not** read `phases/9-memory.md` here.
 
 ## 6. Git
 
@@ -154,7 +150,7 @@ Leaving any phase means the same two marks, here and everywhere after: the stage
 
 `.autopilot/state.js` exists with `finishedAt` still `null` → this is a resume, not a new flight. (A run that finished is the third case at the top of this file, not this one — and at tier T0 there are no tickets to be unfinished, so `finishedAt` is the only reliable test.)
 
-1. Read the project memory file first (`memoryFile` in `state.js` — `CLAUDE.md` or `AGENTS.md`), then `state.js`, `manifest.md`, `interfaces.md`. Do **not** re-read the whole dialogue; the files are the memory. The brief is `<dir>/*-brief.md` — `dir` from `state.js`, and the newest brief inside it if there is more than one.
+1. Read the project memory file first (`memoryFile` in `state.js`), then `state.js`, `manifest.md`, `interfaces.md`. Do **not** re-read the whole dialogue; the files are the memory. The brief is `<dir>/*-brief.md` — `dir` from `state.js`, and the newest brief inside it if there is more than one.
 2. Tell the user in one line where things stand: «Продолжаю: 7 из 12 тасков готовы, следующий — корзина».
    **Re-open the dashboard — always**, which means running **both** §1 and §3 of `phases/0-instruments.md`, not only the second: §1 is what puts `index.html` beside the dashboard, and a `.autopilot/` created before 2026-08-19 does not have one, so the pane lands on a directory listing exactly as it used to. A tab does not outlive the session that opened it, so on a resume there is never a window to preserve; assuming there is leaves the user watching nothing for the rest of the run. What *is* conditional is the server: the content check in `phases/0-instruments.md` §3 reuses the port when the interrupted session left a server on **this** directory, and raises a new one when it did not. Then point the pane at it and say the address, exactly as on a first flight.
 3. A ticket marked `in-progress` in `state.js` with no commit behind it was interrupted mid-flight. Reset it to `pending` and run it again from scratch — a half-applied ticket is worse than a fresh one.

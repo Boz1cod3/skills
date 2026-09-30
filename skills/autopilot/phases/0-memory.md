@@ -1,35 +1,30 @@
 # Phase 0 — Raising the project memory
 
-Two things happen here and nothing else: **pick the file, write the skeleton.** What may be appended during the build, the full description written from the finished code, and the ADRs all live in `phases/9-memory.md` and are read when they happen — the second inside Phase 5, the last two in Phase 8. None of it applies until the build is over.
+Two things happen here: **pick the file, and either write the skeleton or leave the user's file alone.** What the build appends, the full description and the ADRs are in `phases/9-memory.md`, read inside Phase 5 and in Phase 8.
 
 ## Which file
 
-The repo needs a file that tells the **next** session what this project is — `CLAUDE.md` or `AGENTS.md`. Decided by detection, in this order. Stop at the first match.
+The memory file Autopilot creates is **`AGENTS.md`** — Claude Code reads it natively, and so do Codex, Cursor and most other agents. Claude Code skips it, though, whenever a `CLAUDE.md` exists in the working directory or any directory above it, and some sessions cannot read it at all; so a one-line `CLAUDE.md` importing it goes beside it. The import never loads the file twice.
 
-| Check | File |
-|---|---|
-| `CLAUDE.md` already exists | `CLAUDE.md` |
-| `AGENTS.md` already exists | `AGENTS.md` |
-| both exist | the one that already holds the project description; if neither does, `AGENTS.md` — and **leave the other file alone** |
-| `.claude/` directory, or `$CLAUDECODE` / `$CLAUDE_CODE_ENTRYPOINT` is set | `CLAUDE.md` |
-| `.cursor/` directory | `AGENTS.md` |
-| `.codex/` directory, or `.github/copilot-instructions.md` | `AGENTS.md` |
-| nothing matched | `AGENTS.md` as the real file **+ `CLAUDE.md` containing one line: `См. @AGENTS.md`** |
+Decide from what is on disk, first match wins:
 
-- **An existing file always wins over detection.** The repo has already answered the question; asking it again is how you end up with two half-filled memory files.
-- **The pointer file is written only in the fallback case.** When the agent was identified, one file is enough — a second file is a second thing to keep in sync, and it will not be kept in sync.
-- **Never duplicate the text into both files.** Two copies of a project description drift within one run.
-- Record the choice in `state.js` as `memoryFile`, so a resume does not re-derive it.
+| On disk | `memoryFile` | `memoryOwner` | What happens |
+|---|---|---|---|
+| a memory file carrying `<!-- autopilot:start -->` — an earlier run wrote it | that file | `autopilot` | updated between the markers |
+| a `CLAUDE.md` or `AGENTS.md` without markers — the user's own | that file; `CLAUDE.md` if both | `user` | **not written to during the run** — Phase 8 proposes additions (`phases/9-memory.md`) |
+| neither file | `AGENTS.md` | `autopilot` | the skeleton below into `AGENTS.md`, and a `CLAUDE.md` holding the single line `@AGENTS.md` |
 
-**This is never a question for the user** — in any mode, including manual. It is a process decision, like where ticket files live, and Phase 0 answers those itself. It is not, however, a *secret* decision: one line in the opening block, together with the mode.
+A `CLAUDE.md` whose whole content is `@AGENTS.md` is a pointer, not a memory file — judge `AGENTS.md` instead. Never create `AGENTS.md` beside a user's `CLAUDE.md`: Claude Code would not read it, and two descriptions of one project drift.
 
-> Память проекта — `AGENTS.md` (+ `CLAUDE.md` со ссылкой). Скажи, если нужен другой.
+Record both fields in `state.js`. **This is never a question for the user**, in any mode — one line in the opening block, and no waiting for a reply:
 
-Say it and move on. **Do not wait for an answer** — if the user names a different file later, switch and move the block; renaming a markdown file costs nothing, which is exactly why this never earned a gate.
+> Память проекта — `AGENTS.md` (+ `CLAUDE.md` со ссылкой).
 
-## The skeleton
+> Память проекта — твой `CLAUDE.md`: не трогаю, в конце предложу, что дописать.
 
-Cheap, written before anything is built, and it is what survives an interrupted run. Only what is already known — everything Autopilot writes sits between the two markers, in every case, including a file it created itself:
+## The skeleton — only in a file that is Autopilot's
+
+Written before anything is built, so an interrupted run still leaves something true. Everything Autopilot writes sits between the two markers:
 
 ```markdown
 <!-- autopilot:start -->
@@ -43,21 +38,16 @@ Cheap, written before anything is built, and it is what survives an interrupted 
 |---------|------------|
 | `<установка>` | Установить зависимости |
 | `<запуск>` | Запустить локально |
-| `<тесты>` | Прогнать тесты |
+| `<проверка>` | Тесты, типы и линтер одной командой |
 
 ## Как здесь работает Autopilot
 
 Сборка ведётся навыком `/autopilot`. Требования, спецификация и таски — в `.autopilot/`.
-Прогресс — `.autopilot/dashboard.html`. Правило: требование из `manifest.md`
-может снять только пользователь.
-
-Если работа продолжается — скажи «продолжи автопилот»: состояние поднимется
-из `.autopilot/state.js`, переспрашивать ничего не нужно.
+Прогресс — `.autopilot/dashboard.html`. Требование из `manifest.md` может снять
+только пользователь. Прерванную сборку продолжает «продолжи автопилот».
 <!-- autopilot:end -->
 ```
 
-Commands that are not known yet are simply absent. **An invented command is worse than a missing one** — the next session runs it, it fails, and now the whole file is suspect.
+Commands not known yet are simply absent — an invented command is worse than a missing one. Anything outside the markers belongs to the user and is never edited, moved or dropped.
 
-**Anything the user wrote outside the markers is untouchable.** A brownfield repo whose `CLAUDE.md` carries a team's hard-won rules must come out of an Autopilot run with those rules intact. If the markers are missing on a later run but Autopilot's sections are recognisably there, wrap them — do not append a second copy. The reasoning is in `phases/9-memory.md`.
-
-In the third Phase 0 case — a configured repo starting a new feature — the memory file already exists: **top it up, do not rewrite it.** The skeleton is written once, in the run that created the repo.
+On a new feature in a configured repo the file already exists: **top it up, do not rewrite it.**

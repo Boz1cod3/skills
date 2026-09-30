@@ -148,7 +148,7 @@ Credentials are the user's to hold, not the agent's to handle. This section bind
 ├── sync.py              one call after each update: snapshot into the page, server back up if it died
 └── index.html           a symlink onto dashboard.html, so the pane's `/` is the dashboard
 
-CLAUDE.md | AGENTS.md   the project memory — what the next session reads first
+AGENTS.md (+ CLAUDE.md → @AGENTS.md)   the project memory — or the user's own file, left untouched
 docs/adr/               decisions worth outliving the run — written in Phase 9, tier T2+
 ```
 
