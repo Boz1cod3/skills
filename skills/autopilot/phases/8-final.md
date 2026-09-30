@@ -244,20 +244,12 @@ The open page picks this up by itself within ten seconds — this is the picture
 
 **Then, and only then, put out the server** — the one Phase 0 started for the pane (`phases/0-instruments.md`). It goes last because the page has to fetch the final state first, and it goes at all because a run that ends leaving an HTTP server on the user's machine has left something running that nobody will ever think to stop.
 
-**Last means after the report reaches the user, not in the same breath as `finishedAt`.** The page polls every ten seconds; killing the server in the same turn that wrote the final state means it never fetches it, and the picture the user is left staring at says «в работе» forever — the exact failure this whole section exists to prevent, arriving from the other side. Writing the report is what buys the time, so put the kill after it:
+**Last means after the report reaches the user, not in the same breath as `finishedAt`.** The page polls every ten seconds; a server killed in the same turn never serves the final state, and the screen says «в работе» forever. So the stop is deferred:
 
 ```bash
-A=$(git rev-parse --show-toplevel 2>/dev/null || pwd -P)/.autopilot
-( sleep 12
-  read -r PORT PID < "$A/serve.pid"
-  for X in $PID $(pgrep -f -- "--directory $A"); do
-    ps -p "$X" -o command= 2>/dev/null | grep -qi -- 'python.* -m http\.server' && kill "$X"
-  done
-  rm -f "$A/serve.pid" "$A/serve.log" ) >/dev/null 2>&1 &
+python3 "$(git rev-parse --show-toplevel 2>/dev/null || pwd -P)/.autopilot/sync.py" --stop
 ```
 
-**The twelve seconds are what make «after the report» actually true.** A tool call always runs before the text of the message it sits in, so a bare `kill` here executes while the user is still reading nothing — the page's next poll is up to ten seconds away, it never fetches the final state, and the screen keeps saying «в работе» with the clock running. Deferring the kill into a background subshell costs nothing, blocks nothing, and closes the gap from the other side. Do not «fix» this by moving the block earlier or dropping the `sleep`.
-
-**The pid file is the run's own** — `.autopilot/serve.pid`, addressed from the git root (`phases/0-instruments.md` §3), never a machine-wide name: a shared one is how one run's ending takes down another run's dashboard mid-flight. **The loop is over every server on this directory, not just the recorded pid** — a session that raised two of them (a restart, a lost pid file) records only the last, and the others outlive the run. **The `ps` check is not ceremony.** A pid file proves nothing about the process alive under that number today, and the pattern is `-m http\.server`, not `http.server`, because the loose form also matches the unrelated `http-server` from npm — measured 2026-08-19, with a user's dev server as the casualty.
+It returns at once and puts the server out twelve seconds later, from a detached process — every server on this run's directory and nothing else, on macOS, Linux and Windows alike. Do not replace it with a hand-written `kill`.
 
 The pane keeps the final picture on screen — it is already rendered and no longer polling. Nothing is lost with the port: `dashboard.html` carries the final state inside itself, so a double-click reopens it with every number intact — in a real browser, in a pane, on another machine, with no server and no `state.js` anywhere near it. Say nothing about any of this; the shutdown is not news. If доводка is running (`phases/polish.md`), the run is not over — the server stays up until the доводка closes too.

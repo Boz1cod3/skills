@@ -203,6 +203,8 @@
   .dot{display:inline-block;width:7px;height:7px;border-radius:99px;margin-right:7px;vertical-align:1px}
   .tag{display:inline-block;font-size:11px;border:1px solid var(--line);border-radius:5px;
     padding:1px 5px;margin:0 3px 3px 0;color:var(--dim);font-variant-numeric:tabular-nums}
+  .tag.ok{border-color:var(--ok);color:var(--ok)}
+  .tag.part{border-color:var(--ok);border-style:dashed}
   ul.debt{margin:0;padding-left:18px}
   ul.debt li{margin-bottom:4px;font-size:13px}
   .empty{color:var(--dim);font-size:13px}
@@ -325,6 +327,7 @@ const I18N = {
     phase:{'in-progress':"пишется",review:"ревью",repair:"ремонт"},
     nowLbl:"Сейчас:",nowIdle:"Ни один таск не запущен.",
     noTickets:"Тасков пока нет — идёт подготовка.",
+    reqOk:"выполнено",reqPart:"частично: остались другие таски",
     tblTickets:"Таски",thN:"#",thTitle:"Таск",thReq:"Требования",thTime:"Время",thRetry:"Повт.",
     thTests:"Тесты",thCommit:"Коммит",tblEmpty:"пока пусто",
     toClose:"Что осталось закрыть",placeholders:"Заглушки — нужны твои данные",
@@ -364,6 +367,7 @@ const I18N = {
     phase:{'in-progress':"writing",review:"review",repair:"repair"},
     nowLbl:"Now:",nowIdle:"No ticket is running.",
     noTickets:"No tickets yet — still preparing.",
+    reqOk:"done",reqPart:"partly: other tickets pending",
     tblTickets:"Tickets",thN:"#",thTitle:"Ticket",thReq:"Requirements",thTime:"Time",thRetry:"Retry",
     thTests:"Tests",thCommit:"Commit",tblEmpty:"empty so far",
     toClose:"Still to close",placeholders:"Placeholders — your data needed",
@@ -722,11 +726,24 @@ function render(lang){
     ? '<ul class="debt">' + arr.map(x => `<li>${esc(x)}</li>`).join('') + '</ul>'
     : `<div class="empty">${L.none}</div>`;
 
+  // Требование выполнено, когда готовы все таски, где оно названо (issue #6).
+  const reqState = {};
+  T.forEach(t => (t.requirements||[]).forEach(r => {
+    const x = reqState[r] || (reqState[r] = {n: 0, d: 0});
+    x.n++; if (t.status === 'done') x.d++;
+  }));
+  Object.keys(reqState).forEach(r => {
+    const x = reqState[r];
+    reqState[r] = x.d === 0 ? '' : x.d === x.n ? 'ok' : 'part';
+  });
   const rows = T.map(t => `<tr>
     <td><b>${esc(t.id)}</b></td>
     <td><span class="dot" style="background:${statusColor(t.status)}"></span>${esc(t.title)}
       ${t.concerns?.length ? `<div class="sub">${esc(t.concerns.join('; '))}</div>` : ''}</td>
-    <td>${(t.requirements||[]).map(r => `<span class="tag">${esc(r)}</span>`).join('') || '<span class="empty">—</span>'}</td>
+    <td>${(t.requirements||[]).map(r => {
+      const st = reqState[r];
+      return `<span class="tag${st ? ' ' + st : ''}"${st ? ` title="${st === 'ok' ? L.reqOk : L.reqPart}"` : ''}>${esc(r)}</span>`;
+    }).join('') || '<span class="empty">—</span>'}</td>
     <td class="mins">${t.startedAt ? timerHTML(t.startedAt, t.finishedAt) : '—'}</td>
     <td class="mins">${t.retries ? t.retries : ''}${
       t.repairs ? `<span style="color:var(--fix)"> +${t.repairs}</span>` : ''}</td>

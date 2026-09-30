@@ -20,19 +20,47 @@
 
 import json
 import os
+import re
 import sys
 import glob
 from datetime import datetime
 from collections import Counter
+
+for _s in (sys.stdout, sys.stderr):                     # cp1251-консоль Windows
+    try:
+        _s.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
 
 W_OUT, W_WRITE, W_READ = 5.0, 1.25, 0.1
 IDLE_GAP_SEC = 300          # пауза длиннее — это простой, а не работа
 CEILING_HINT = 120_000      # потолок из phases/5-subagents.md, для колонки «перебор»
 
 
+# Роль субагента — по описанию, которое ему дал оркестратор. Порядок важен:
+# «Ремонт по находкам ревью» — ремонт, а не ревью.
+ROLES = [
+    ("ремонт", r"ремонт|дозапрос|правки|доработка|repair|\bfix"),
+    ("ревью", r"ревью|review|рецензент|ремесл|craft"),
+    ("приёмка", r"слеп|blind|покрыт|coverage|\bg2\b"),
+    ("память", r"памят|memory|\badr\b|claude\.md|agents\.md"),
+    ("разведка", r"развед|explor|notes"),
+    ("исполнитель", r"таск|ticket|исполн|executor"),
+]
+
+
+def role_of(label):
+    if label == "Оркестратор":
+        return "оркестратор"
+    for name, rx in ROLES:
+        if re.search(rx, label.lower()):
+            return name
+    return "прочее"
+
+
 def logs_dir_for(project_path):
     p = os.path.abspath(os.path.expanduser(project_path))
-    return os.path.join(os.path.expanduser("~/.claude/projects"), p.replace("/", "-"))
+    return os.path.join(os.path.expanduser("~/.claude/projects"), re.sub(r"[^A-Za-z0-9]", "-", p))
 
 
 def parse_ts(s):
@@ -46,7 +74,7 @@ def parse_ts(s):
 
 def load(path):
     rows = []
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line:
@@ -155,7 +183,7 @@ def main():
 
     metas = {}
     for mf in glob.glob(os.path.join(sub_dir, "subagents", "*.meta.json")):
-        with open(mf) as f:
+        with open(mf, encoding="utf-8") as f:
             metas[os.path.basename(mf)[:-10]] = json.load(f)
 
     results = [analyse(main_log, "Оркестратор")]
@@ -179,6 +207,16 @@ def main():
     rd = sum(r["read"] for r in results)
     steps = sum(r["steps"] for r in results)
     print(f"{'ИТОГО':<38}{steps:>7}{'':>9}{'':>9}{'':>7}{total/1e6:>10.2f}M\n")
+
+    print("По ролям")
+    by = {}
+    for r in results:
+        by.setdefault(role_of(r["label"]), [0, 0.0])
+        by[role_of(r["label"])][0] += 1
+        by[role_of(r["label"])][1] += r["norm"]
+    for name, (n, val) in sorted(by.items(), key=lambda kv: -kv[1][1]):
+        print(f"  {name:<14}{n:>3} конт.{val/1e6:>9.2f}M{val/total*100:>6.1f}%")
+    print()
 
     print("Структура расхода")
     for name, val in (("чтение кэша", rd * W_READ), ("запись кэша", w * W_WRITE), ("генерация", o * W_OUT)):

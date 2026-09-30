@@ -20,6 +20,7 @@ A=$(git rev-parse --show-toplevel 2>/dev/null || pwd -P)/.autopilot
 TPL=$(find -L ~/.claude/skills ~/.agents/skills ~/.claude/plugins .claude/skills .agents/skills \
         -maxdepth 6 -name dashboard-template.html 2>/dev/null | head -1)
 [ -n "$TPL" ] && TPL=$(cd "$(dirname "$TPL")" && pwd -P)/dashboard-template.html
+command -v cygpath >/dev/null && TPL=$(cygpath -m "$TPL")   # Windows: C:/…, а не /c/…
 echo "skillDir = ${TPL%/phases/*}"
 mkdir -p "$A" && cp "$TPL" "$A/dashboard.html" && ln -sfn dashboard.html "$A/index.html"
 cp "${TPL%/phases/*}/tools/sync.py" "$A/sync.py"
@@ -29,7 +30,7 @@ cp "${TPL%/phases/*}/tools/sync.py" "$A/sync.py"
 
 **`find -L`, and no `*` anywhere in it** — both measured on 2026-08-17. Skills are installed as symlinks (`~/.claude/skills/autopilot` → `~/.agents/skills/autopilot`) and a plain `find` will not follow one, so it reports nothing while the file sits right there; a `plugins/*/` glob is worse still, because in zsh an unmatched glob aborts the command before it runs — and the same line works in bash, which is what makes it hard to notice.
 
-Empty output means the skill lives somewhere none of those five roots cover: widen the search once, by hand, and carry on. Never regenerate the template, never read it into context, never edit it after the copy.
+Empty output means the skill lives somewhere none of those five roots cover: widen the search once, by hand, and carry on. **If `python3` is not a working interpreter** — on Windows it can be the Microsoft Store stub — use `python` or `py -3` wherever this skill says `python3`. Never regenerate the template, never read it into context, never edit it after the copy.
 
 **`index.html` is not a second dashboard — it is the name under which the server hands the same file out at `/`.** Without it `python3 -m http.server` answers the directory with a *listing*, and the pane in §3 can only be pointed at an origin, never at a path: one dropped navigation and the user spends the run reading file names (measured 2026-08-18). A symlink, not a copy — a copy is a second dashboard that ages; if `ln` refuses, §3 still navigates to `/dashboard.html`.
 
@@ -182,7 +183,7 @@ Every one of them, two moves and no more: **edit the affected rows** of `state.j
 
 This is here because on 2026-08-19 `spec` stayed `active` for two and a half hours beside a finished plan and a running build, and the person who noticed was the user, looking at the dashboard. Half a ritual performed by hand is a ritual that will be half-performed.
 
-**Lines starting with `!` are the ones left for you, and they are fixed in the same turn.** What cannot be derived is not guessed: a stage the run walked past but never marked — `pending` behind an active one — needs `skipped` **and a reason**, and only you know it. Same for a ticket in flight with no `startedAt`. A wrong guess about what you meant is worse than the inconsistency it would paper over.
+**Lines starting with `!` are the ones left for you, fixed in the same turn and not investigated.** A stage the run walked past without marking — `pending` behind an active one — is closed by `sync.py` itself when its file is on disk (`manifest.md`, `spec.md`, `tickets/`); what it cannot see is yours to mark: `done` if it happened, `skipped` with a reason if it did not. Same for a ticket in flight with no `startedAt`. It is bookkeeping — one edit, not a diagnosis.
 
 **Skipping `sync.py` degrades, it does not break.** The page on http is fed by `state.js` either way; what goes stale is only what the page shows to someone who opens the file with no server behind it. So if a stretch of the build is one edit after another, syncing on the stage transition rather than on every single row is a judgement call you are allowed to make — but end every phase synced.
 
