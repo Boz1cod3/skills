@@ -19,7 +19,7 @@ Every piece of user text — the brief, every answer, every pasted fragment — 
 | Private key | `-----BEGIN … PRIVATE KEY-----` |
 | Generic | ≥32 chars of hex or base64 next to `key`, `token`, `secret`, `password`, `ключ`, `токен`, `пароль`, `доступ` |
 
-On a hit: replace the value with `[REDACTED:<VAR_NAME>]` (the conventional name — `STRIPE_SECRET_KEY`, `TELEGRAM_BOT_TOKEN`, `DATABASE_URL`); add the name to `.env.example` with an empty value; tell the user in one plain line — «Ты прислал ключ Stripe — я его не сохранил. Впиши его сам в `.env`, а этот лучше отзови и выпусти новый: он уже побывал в переписке»; carry on. **Never echo the value**, not even to confirm what you found. Before the first commit, run the gate over all of `.autopilot/`.
+On a hit: replace the value with `[REDACTED:<VAR_NAME>]` (the conventional name — `STRIPE_SECRET_KEY`, `TELEGRAM_BOT_TOKEN`, `DATABASE_URL`); add the name to `.env.example` with an empty value; tell the user in one plain line — «Ты прислал ключ Stripe — я его не сохранил. Впиши его сам в `.env`, а этот лучше отзови и выпусти новый: он уже побывал в переписке»; carry on. **Never echo the value**, not even to confirm what you found. Before the first commit — the plan commit at the end of Phase 4 — run the gate over all of `.autopilot/`.
 
 ## 2. The brief file
 
@@ -62,7 +62,7 @@ Split the brief into the smallest units that can independently be true or false 
 | R06i | *(подразумевается)* кто-то должен читать заявки | deferred | вне рамок §9: админки в брифе не было | отчёт |
 ```
 
-Keep the column order: `ap.py` reads the ID from the first column and the status from the third.
+Keep the column order: `ap.py` reads the ID from the first column and the status from the third, and appends ticket numbers and commits to «Где», the fifth. A `|` inside a quote is written `\|`.
 
 | Status | Meaning | Set by |
 |---|---|---|
@@ -70,9 +70,11 @@ Keep the column order: `ap.py` reads the ID from the first column and the status
 | `in-spec` | landed in the spec, section noted | you |
 | `in-ticket` | a ticket delivers it | `ap.py tickets` |
 | `done` | built and committed | `ap.py ticket … done` |
-| `placeholder` | built with a visible stub where a user fact belongs | you, or `--placeholder` on `done` |
+| `placeholder` | built, with a visible stub where a user fact belongs | `ap.py ticket … done --placeholder` |
 | `deferred` | consciously postponed, with its line in the spec's «Вне рамок» | you |
 | `dropped` | **cancelled by the user** | **the user, never you** |
+
+A fact the user does not have yet — «цены пришлю потом» — does not make the row a placeholder early: it stays live and goes through the spec and a ticket like any other, with the missing fact named in Основание, and becomes `placeholder` when the stub is built.
 
 - **`dropped` requires the user's own words** in Основание. You may *propose* dropping — that is a question, not a status change.
 - **`deferred` is not `dropped`**, and every `deferred` row reaches the report under «что не вошло».
@@ -80,7 +82,7 @@ Keep the column order: `ap.py` reads the ID from the first column and the status
 
 **Implicit requirements** get a trailing `i` (`R06i`) — what the brief plainly implies but never says: «принимает заявки» implies somewhere to read them. Too obvious to state, too big to skip: route them to the briefing as questions; in full they become `ASSUMPTION` decisions in the report.
 
-**Discovered constraints** are `D##` — what the **build** proved that the plan did not know. After the briefing, a `D##` is the only row **you** may add, and only through `phases/5-repair.md`; the only other way the manifest grows is a `G##` the user asked for. A `D##` never retires a requirement.
+**Discovered constraints** are `D##` — what the **build** proved that the plan did not know. After the briefing, a `D##` is the only row **you** may add, and only through `phases/5-repair.md`; the only other way the manifest grows is a `G##` the user asked for. A `D##` never retires a requirement. Its status is `in-spec` — the amended section — and it is a constraint, not a requirement: it is not counted and needs no ticket of its own.
 
 **How fine:** one row = one thing that can be true or false on its own. «Бот принимает заявки и складывает в таблицу» is two rows. A 2000-word brief usually yields 25–50 rows; under 10 from a long brief means you summarised instead of atomising.
 
@@ -92,11 +94,11 @@ Keep the column order: `ap.py` reads the ID from the first column and the status
 
 A failed gate is not a warning — the phase is redone.
 
-- **G1, after the briefing** — every row has a status; anything `open` has a recorded reason. In full, nothing is `open`.
+- **G1, after the briefing** — every row has a status; anything still `open` has a recorded reason — a fact the user will supply later, named in Основание. In full, no question stays open.
 - **G2, after the spec** — zero `open`, **and** an independent reader given only the brief and the spec finds nothing missing (`phases/3-spec.md`).
 - **G3, after the plan** — every `in-spec` row is in a ticket and every ticket traces to a row: `ap.py check-plan` (`phases/4-plan.md`).
 - **G4, at the end** — blind acceptance against the brief, spec withheld (`phases/8-final.md`).
 
 ## Keeping it current
 
-Edits of the affected rows, never a rewrite of the table. `ap.py` moves rows to `in-ticket` and `done` by itself; you change them at the other moments: after each briefing answer, after the spec (`in-spec` / `deferred`), on a `D##`, and when the user changes something mid-flight — the row moves (`dropped` with the quote, or a new `G##`) **and the same words go into the brief's `## Дополнения`**. The procedure is in `phases/2-briefing.md`.
+Edits of the affected rows, never a rewrite of the table. `ap.py` moves rows to `in-ticket`, `done` and `placeholder` by itself; you change them at the other moments: after each briefing answer, after the spec (`in-spec` / `deferred`), on a `D##`, and when the user changes something mid-flight — the row moves (`dropped` with the quote, or a new `G##`) **and the same words go into the brief's `## Дополнения`**. The procedure is in `phases/2-briefing.md`.

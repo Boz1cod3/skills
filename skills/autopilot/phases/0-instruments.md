@@ -43,7 +43,9 @@ Immediately after `init`, before Phase 1 asks anything.
 
 **Say the address in the chat too** — some clients show the pane only as a card with an «Open» button.
 
-**Path B — no pane, or no python:** `open`, `xdg-open` or `start` on `.autopilot/dashboard.html`; a real browser polls `state.js` from `file://` by itself.
+**Path B — no pane:** `open`, `xdg-open` or `start` on `.autopilot/dashboard.html`; a real browser polls `state.js` from `file://` by itself.
+
+**No working python at all** means no `ap.py` and no dashboard. Say so in one line, skip the dashboard, keep the manifest's statuses by hand, and check G3 yourself against the ticket files. Everything else in the run is unchanged.
 
 - Opened **once per flight**; on a resume **always re-pointed** — a tab does not outlive its session.
 - `$SSH_CONNECTION` or `$CI` set → print the path, open nothing.
@@ -59,7 +61,7 @@ Immediately after `init`, before Phase 1 asks anything.
 | tier decided | `set tier=T2` |
 | ticket files written | `tickets` — publishes every ticket; manifest rows `in-spec` → `in-ticket` |
 | gate G3 | `check-plan` |
-| before the first ticket | `set baseCommit=$(git rev-parse --short HEAD)` |
+| the plan commit is made | `set baseCommit=<sha>` — chained with it (`phases/4-plan.md`) |
 | a ticket or a whole wave launched | `ticket 02 03 start` — **before** the subagents go out |
 | a ticket goes to point review | `ticket 02 review` |
 | a blocking finding goes back | `ticket 02 repair --note "условие одной строкой"` |
@@ -69,20 +71,16 @@ Immediately after `init`, before Phase 1 asks anything.
 | a deferred finding | `add concerns "файл:строка — что не так"` |
 | a stub, an assumption, an empty variable | `add debt.placeholders "…"` · `add debt.assumptions "…"` · `add debt.emptyEnv NAME` |
 | an `A##` that reached the code | `add additions "что — ради R01"` |
-| G2 result | `coverage found=2 fixed=2 deferred=0` |
-| blind acceptance | `blind checked=12 matched=11 --mismatch "R07 — статус не виден"` |
+| a finding for the final report | `add report "…"` |
+| G2 result | `coverage found=2 fixed=1 deferred=1 --item "R07 — отложено: …"` |
+| blind acceptance | one call: `blind checked=12 matched=11 --mismatch "R07 — статус не виден" --mismatch "…"` |
 | a full check outside a ticket | `tests 34/0` |
 | the run lands | `finish --result "одна строка: что теперь есть"` |
 
-All are `python3 .autopilot/ap.py …`. **Chain a call with the command it belongs to**, so one event is one turn:
+All are `python3 .autopilot/ap.py …`, and `add` takes several values in one call. **Chain a call with the command it belongs to**, so one event is one turn — the commit of a ticket and its `done` go together (`phases/5-subagents.md`, step 7). Never chain a commit after a check whose result you have not read: `| tail` always exits 0.
 
-```bash
-npm run check 2>&1 | tail -30 && git add -- src/bot/ && git commit -qm "T02: приём заявки" \
-  && python3 .autopilot/ap.py ticket 02 done --tests 34/0 --commit "$(git rev-parse --short HEAD)"
-```
-
-- **Lines starting with `!` are yours, fixed in the same turn and not investigated** — they are bookkeeping, one call each.
-- Manifest rows the tool cannot know — `dropped`, `deferred`, `placeholder` decided in the spec, a new `G##` or `D##` — you edit in `manifest.md` yourself; the counts on the dashboard follow on the next call.
+- **Two kinds of `!` lines.** From ordinary calls — a stage skipped in the books, a ticket without a start — they are bookkeeping: fixed in the same turn, one call, not investigated. From `check-plan` they are defects of the plan, and gate G3 does not pass until they are gone.
+- Manifest rows the tool cannot know — `in-spec`, `deferred`, `dropped`, a new `G##` or `D##` — you edit in `manifest.md` yourself; `in-ticket`, `done` and `placeholder` are the tool's. The counts on the dashboard follow on the next call.
 - **Never a secret value** in any call: `emptyEnv` holds names.
 - The page repaints every ten seconds, counts working time rather than calendar time, and freezes at `finish`. Mention it **once**, in the opening block, and never explain it in the chat.
 

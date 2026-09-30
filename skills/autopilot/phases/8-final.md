@@ -1,24 +1,26 @@
 # Phase 8 — Acceptance
 
-`ap.py stage final`. Three subagents go out **in one message**, with no contact between them, each answering a different question:
+`ap.py stage final`. Three subagents, no contact between them, each answering a different question. The blind checker and the ADR agent go out **in one message**; the memory agent goes out when the blind checker has returned, because it needs the commands the checker proved:
 
 | Agent | Question | Receives | Never receives |
 |---|---|---|---|
-| blind checker | что из брифа сделано | the brief, the repository | `spec.md`, `manifest.md`, tickets |
-| memory | как этим пользоваться завтра | the repo, the memory file, `interfaces.md`, the tier, the verified commands | `spec.md`, tickets |
+| blind checker | что из брифа сделано | the brief files, the repository | `spec.md`, `manifest.md`, tickets |
 | ADR *(T2+)* | почему сделано именно так | `spec.md`, `manifest.md`, `interfaces.md` | the repo |
+| memory | как этим пользоваться завтра | the repo, the memory file, `interfaces.md`, the tier, the commands the checker ran | `spec.md`, tickets |
 
 ## 1. Blind acceptance — gate G4
 
 Every check so far measured the build against the spec — your own paraphrase of the brief. If a requirement was lost on the way into it, everything downstream faithfully confirmed that loss. **So this check does not get the spec.**
 
-It receives the brief file (`dir` and `briefFile` in `state.js`), **the whole file with `## Дополнения`**, and the repository. `.autopilot/` is committed and sits right there, so **not sending the spec is not enough — the prohibition goes in the prompt**:
+It receives every `*-brief.md` in `dir`, oldest first, **whole, `## Дополнения` included**, and the repository. `.autopilot/` is committed and sits right there, so **not sending the spec is not enough — the prohibition goes in the prompt**:
 
-> Прочитай приложенный бриф — это задача, которую поставил заказчик. Раздел
-> «Дополнения» — сказанное по ходу работы, часть задачи наравне с основным
-> текстом; при расхождении верно более позднее. Не открывай `.autopilot/` —
-> ни спецификацию, ни манифест, ни таски. Не вызывай скиллы и не запускай
-> своих агентов.
+> Прочитай приложенные файлы брифа — это задача, которую поставил заказчик,
+> по порядку дат. Разделы «Дополнения» — сказанное по ходу работы, часть задачи
+> наравне с основным текстом; при расхождении верно более позднее. Не открывай
+> `.autopilot/` — ни спецификацию, ни манифест, ни таски. Не вызывай скиллы
+> и не запускай своих агентов. Ничего не отправляй наружу: ни писем, ни
+> сообщений реальным людям, ни оплат, ни публикаций — если сценарий до этого
+> доходит, остановись на шаге перед отправкой и запиши, что дальше не проверял.
 >
 > **Склонируй репозиторий во временную папку** (`git clone <репозиторий> <tmp>`)
 > и работай там: поставь зависимости с нуля по тому, что лежит в репозитории.
@@ -51,7 +53,7 @@ It receives the brief file (`dir` and `briefFile` in `state.js`), **the whole fi
 | `dropped` / `deferred` | нет | expected — in the report as not built |
 | — | реализовано, но не из брифа | scope that grew without a parent — reported |
 
-`ap.py blind checked=N matched=M --mismatch "…"` for every 🔴. A drift found here is the run working; hiding it is the failure. **A build nobody has launched is a build nobody has seen work** — if it cannot be run here at all, that goes to «Что нужно от тебя», not into the accepted column.
+Record it in one call — `ap.py blind checked=N matched=M --mismatch "…" --mismatch "…"`, one `--mismatch` per 🔴. A drift found here is the run working; hiding it is the failure. **A build nobody has launched is a build nobody has seen work** — if it cannot be run here at all, that goes to «Что нужно от тебя», not into the accepted column.
 
 ## 2. Memory and ADRs
 
@@ -59,7 +61,7 @@ It receives the brief file (`dir` and `briefFile` in `state.js`), **the whole fi
 
 ## 3. The final report
 
-Run the check once more first, truncated. Then write, in the user's language, plain, no jargon.
+Run the check once more first, truncated, and record it — `ap.py tests N/M`. Then write, in the user's language, plain, no jargon.
 
 **Build it from the files, re-read now, not from memory.** By this phase your context is the most polluted of the run, and memory gets the report wrong in one direction: a `deferred` requirement reported as done, a placeholder vanishing, an `A##` nobody ordered turning up as though they had asked.
 
@@ -71,8 +73,8 @@ Run the check once more first, truncated. Then write, in the user's language, pl
 | Что не вошло | `deferred` and `dropped` rows, with their quotes |
 | Что я добавил сверх заказанного | `state.js` → `additions`, checked against the spec's `A##` |
 | Что пошло не по плану | every `D##` row, every failed ticket |
-| Что осталось после ревью | the whole-branch review's «report» findings |
-| Открытые вопросы | `state.js` → `blind`, and what `coverage` found that was not built |
+| Что осталось после ревью | `state.js` → `report` |
+| Открытые вопросы | `state.js` → `blind`, and `coverage` → `items` that ended up not built |
 | Память проекта *(only when the file is the user's)* | `memory-proposal.md` — one question: «Предлагаю дополнить твой `CLAUDE.md`: N пунктов — применить?»; in full, only a line naming the file |
 | Запустить / Где что лежит | `memoryFile`, `briefFile`, the commands the memory agent verified |
 
@@ -133,7 +135,14 @@ In this order, so the report names paths that exist:
 
 1. The memory file (or its proposal) and the ADRs are written.
 2. `python3 .autopilot/ap.py finish --result "<одна строка: что теперь есть>"` — closes every stage, sets `finishedAt`, renames `<dir>--wip` to `<dir>` with `git mv`, closes the run's row in `.autopilot/README.md`, and puts the server out twelve seconds later, after the page has fetched the final picture. A `!` line about the rename means the name was taken or the index dirty: leave it, the run is not undone by a cosmetic suffix.
-3. **The final commit** — everything, `.autopilot/` included.
+3. **The final commit** — exactly what this skill wrote since the plan commit, never the rest of the tree, where the user may have work of their own:
+
+   ```bash
+   git add -A -- .autopilot AGENTS.md CLAUDE.md docs/architecture.md docs/adr .env.example .gitignore \
+     && git commit -qm "Autopilot: сборка сдана" -- .autopilot AGENTS.md CLAUDE.md docs/architecture.md docs/adr .env.example .gitignore
+   ```
+
+   Leave out of both lists any path that does not exist, and the memory file if it is the user's own. The code itself went in ticket by ticket. `git status` afterwards: a changed file outside everything any ticket owned is not committed by you — it goes in the report as «осталось незакоммиченным».
 4. The report.
 
 The dashboard freezes on the final numbers and carries them inside the page, so it reopens by double-click long after the server is gone. Say nothing about any of this.

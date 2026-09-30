@@ -1,6 +1,8 @@
 # Phase 3 — Spec
 
-Turn the manifest and the answers into `.autopilot/<dir>/spec.md` — the contract the executors and reviewers work from. The user sees two lines; the file is the spec.
+`ap.py stage spec`. Turn the manifest and the answers into `.autopilot/<dir>/spec.md` — the contract the executors and reviewers work from. The user sees two lines; the file is the spec.
+
+**An existing codebase is explored first.** When Phase 0 found code, one subagent on the cheaper model reads the repository once and writes `.autopilot/<dir>/notes.md`: where things live, the conventions in use, the commands that run it, and **the exact names of the entities, fields and functions the work will touch** — so boundaries are decided against the code that exists, and two parallel tickets do not call one field `blockedSince` and `blockedOn`. Every executor reads it later instead of exploring from scratch. A new repo has nothing to explore.
 
 **This phase does not reopen the interview.** What is still unresolved becomes a `placeholder`. One narrow exception: a genuine fork the briefing missed, where the branches are different projects — ask it once, in one line, with a recommendation. In full there is no exception: decide it and record the `ASSUMPTION`.
 
@@ -103,15 +105,16 @@ Which section covers which requirement lives in the manifest's «Где» column
 
 **1. Your own pass.** Every manifest row: `open` → `in-spec` with its section in «Где», or → `deferred` with its «Вне рамок» line. **Zero `open`**, or the spec is incomplete — write the missing section.
 
-**2. The independent coverage check** — the half that works. You wrote the spec, so you cannot see what you did not write. Spawn a subagent with **exactly two files**, the brief and `spec.md` — never the manifest (your reading of the brief), the conversation or a summary — and tell it not to go looking, because both files sit in `.autopilot/` beside the manifest:
+**2. The independent coverage check** — the half that works. You wrote the spec, so you cannot see what you did not write. Spawn a subagent with **exactly the named files** — every `*-brief.md` in `dir`, oldest first, and `spec.md` — never the manifest (your reading of the brief), the conversation or a summary; and tell it not to go looking, because the files sit in `.autopilot/` beside the manifest:
 
-> Открой ровно два названных файла и больше ничего — ни `manifest.md`,
+> Открой только названные файлы и больше ничего — ни `manifest.md`,
 > ни остальное содержимое `.autopilot/`. Твоя ценность в том, что ты
 > не видел, как автор спецификации читал задачу. Не вызывай скиллы
 > и не запускай своих агентов.
 >
-> Первый файл — задача словами заказчика. Раздел «Дополнения» в нём — сказанное
-> позже, и при расхождении верно более позднее. Второй — спецификация.
+> Файлы брифа — задача словами заказчика, по порядку дат. Разделы «Дополнения»
+> в них — сказанное позже, и при расхождении верно более позднее.
+> Последний файл — спецификация.
 >
 > Найди всё, что заказчик просил, а спецификация не покрывает: цитата из брифа
 > и одна строка, чего нет. Отдельно — покрытое наполовину, так что по нему нельзя
@@ -120,7 +123,7 @@ Which section covers which requirement lives in the manifest's «Где» column
 > Не оценивай качество и не предлагай улучшений. Только факт расхождения.
 > Расхождений нет — так и скажи.
 
-Act on it before leaving: *missing* → write the section; *half-covered* → write what was missing; *not in the brief* → attach it to a parent as `A##` or cut it. Record `ap.py coverage found=N fixed=N deferred=N` — the report says whether the gate ever caught anything. A finding here costs a paragraph; the same finding at G4 costs the build.
+Act on it before leaving: *missing* → write the section; *half-covered* → write what was missing; *not in the brief* → attach it to a parent as `A##` or cut it. Record it in one call — `ap.py coverage found=N fixed=N deferred=N --item "…"` with an `--item` for each finding not fixed in the spec — so the report can say whether the gate ever caught anything. A finding here costs a paragraph; the same finding at G4 costs the build.
 
 ## Showing it
 

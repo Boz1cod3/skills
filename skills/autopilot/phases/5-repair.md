@@ -11,11 +11,11 @@ Two counters, both capped at two: `repairs` (дозапросы) and `retries` (
 | | Недоделка — could have, did not | Отказ — tried, could not |
 |---|---|---|
 | What | a red check, a blocking finding, a criterion met in letter and dodged in substance | `BLOCKED`, `NEEDS_CONTEXT`, a repair that already failed |
-| Goes to | **the same executor**, by message, its context intact — a **дозапрос** | **a fresh context**, only with a changed approach, on the strong model |
+| Goes to | **the same executor**, by message, its context intact — a **дозапрос** | **a fresh context**, on the strong model (below) |
 | You send | the condition, nothing else | the ticket again, the error, the failing test named, the path now spelled out |
 | Because | it holds why the code is the way it is; a cold reader repairs the symptom and breaks the reason | its context *is* the failure — the same request gets the same answer |
 
-`ap.py ticket NN repair --note "условие одной строкой"` before the message goes out. A дозапрос is short:
+`ap.py ticket NN repair --note "условие одной строкой"` before the message goes out — and for a reviewed ticket `git add -A -- <zone>` too, so the re-review sees only the fix. A дозапрос is short:
 
 ```
 Тест `parses empty address` красный:
@@ -28,9 +28,13 @@ Two counters, both capped at two: `repairs` (дозапросы) and `retries` (
 - **The cause first, then the fix.** No cause found → `BLOCKED`, not a workaround. **A weakened or deleted assertion is not a repair.**
 - **A condition, never «поправь»** — this test green, this field visible, this error handled.
 - **The repair returns the contract again** — new `FILES`, new `TESTS`.
-- **A reviewed ticket's repair is re-reviewed, scoped to the fix**: a fresh reviewer gets the fix's diff and the findings it was meant to close, verdicts each one closed or not, and flags new breakage inside the fix only. Never the whole ticket again.
+- **A reviewed ticket's repair is re-reviewed, scoped to the fix** — mode «ремонт» in `prompts/review.md`: a fresh reviewer gets `git diff -- <zone>` and the conditions, verdicts each closed or not, and flags new breakage inside the fix only. Never the whole ticket again. A repair of an unreviewed ticket (a red check) needs only the check green again.
 - **Two дозапроса into one context, then the right-hand column.**
 - If the harness cannot continue a subagent, the fallback is a fresh context with the full ticket prompt plus the finding — never your own keyboard.
+
+## BLOCKED for a missing dependency
+
+Not a failure. If the dependency fits a decision the spec already made, add it to «Решения по реализации» and relaunch the ticket with permission to install exactly that (`phases/5-subagents.md`). If it would be a new decision — a paid service, a heavy framework, a different stack — it is the user's question in semi, interview and manual, an `ASSUMPTION` in full.
 
 ## When a ticket fails
 

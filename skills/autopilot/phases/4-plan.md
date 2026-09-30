@@ -1,6 +1,6 @@
 # Phase 4 — Plan
 
-Cut the spec into tickets, each built by its own subagent in a fresh context.
+`ap.py stage plan`. Cut the spec into tickets, each built by its own subagent in a fresh context.
 
 **Every ticket boundary is a cold start** — read the interfaces, explore the code, find the commands: 20–40k tokens before a line is written. A ticket is worth creating only when the work inside it is bigger than that. **Fewer, denser tickets beat more, thinner ones**: each extra boundary is another context re-learning the project and another chance for two executors to disagree about an interface.
 
@@ -35,7 +35,7 @@ A `deep` spec for a landing page is a long document about one page: still T0. Cr
 
 - `да — фундамент` — ticket 01, and any ticket building a shared module, the schema, or an interface other tickets call.
 - `да — <риск>` — anything touching login and access rights, money, deleting or migrating user data, secrets, or messages sent to third parties.
-- `нет` — the rest. Most tickets.
+- `нет` — the rest. Most tickets. **At T0 the one ticket is `нет` too**: the whole-branch review is its review, and a point review would read the same diff twice.
 
 **Model** — who builds it.
 
@@ -81,16 +81,24 @@ A `deep` spec for a landing page is a long document about one page: still T0. Cr
 - **The verbatim brief quotes are not decoration** — they are the last thing standing between a fresh context and a plausible reinterpretation, and the point reviewer judges the Manifest axis from them.
 - **Every criterion is checkable and false at the commit the executor starts from.** A criterion already true tests nothing; the executor proves each one red before building it (`prompts/executor.md`).
 - No file paths or code snippets except a structure prose states worse — a schema, a state machine.
+- `Зависит от` lists ticket numbers only — `01, 02`, or `—`.
 
 ## Before the first ticket flies
 
-**`interfaces.md` carries more than the boundaries** Phase 3 wrote there. Add the project rules an executor cannot derive: stack and versions; how to install, run, and **one check command** — tests, types and lint together — plus how to run a single test file (ticket 01 creates the check command if the project has none); what must not be touched; and that a missing dependency comes back as `BLOCKED`, never an install.
+**`interfaces.md` carries more than the boundaries** Phase 3 wrote there. Add the project rules an executor cannot derive: stack and versions; how to install, run, and **one check command** — tests, types and lint together — plus how to run a single test file (ticket 01 creates the check command if the project has none); what must not be touched. **Ticket 01 installs every dependency «Решения по реализации» names**; any other one comes back from an executor as `BLOCKED` (`phases/5-repair.md`).
 
-**A brownfield repo gets exploration notes.** When Phase 0 found existing code, one subagent on the ordinary model reads the repository once and writes `.autopilot/<dir>/notes.md`: where things live, the conventions in use, and **the exact names of the entities, fields and functions tickets will touch** — so two parallel tickets do not call one field `blockedSince` and `blockedOn`. Every executor reads it instead of exploring from scratch. A new repo has nothing to explore; there `interfaces.md` does this job.
+## Gate G3, publishing, and the plan commit
 
-## Gate G3 and publishing
+`python3 .autopilot/ap.py tickets` publishes every ticket to the dashboard and moves their manifest rows to `in-ticket`; `python3 .autopilot/ap.py check-plan` is the gate. It checks both directions — every live requirement in some ticket, every ticket tracing to a requirement — and that every ticket has a zone and a wave, waves respect the dependencies, and no two tickets in one wave write the same zone. Each `!` line is a plan defect: fix the ticket files and run both again.
 
-`python3 .autopilot/ap.py tickets` publishes every ticket to the dashboard and moves their manifest rows to `in-ticket`; `python3 .autopilot/ap.py check-plan` is the gate. It checks both directions — every `in-spec` requirement in some ticket, every ticket tracing to a requirement — and that every ticket has a zone and a wave, waves respect the dependencies, and no two tickets in one wave write the same zone. Each `!` line is a plan defect: fix the ticket files and run both again. Then `ap.py set baseCommit=$(git rev-parse --short HEAD)`.
+**Then the plan commit** — the run's first, and the base every later diff is measured from. Run the redaction gate over `.autopilot/` (`phases/1-manifest.md`), then commit exactly the files this skill wrote so far — never anything else in the tree:
+
+```bash
+git add -A -- .autopilot .gitignore AGENTS.md CLAUDE.md .env.example && git commit -qm "Autopilot: план сборки" -- .autopilot .gitignore AGENTS.md CLAUDE.md .env.example \
+  && python3 .autopilot/ap.py set baseCommit="$(git rev-parse --short HEAD)"
+```
+
+Leave out of both lists any file that does not exist, and the memory file if it is the user's own.
 
 A ticket that exists only in the dialogue is not a ticket — the user is shown a summary of files already on disk.
 

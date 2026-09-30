@@ -20,11 +20,11 @@ This file is the orchestrator: order, gates, the rules that never lose. Each pha
 
 | Phase | Read | Produces |
 |---|---|---|
-| 0 Preflight | `phases/0-modes.md`, `phases/0-preflight.md`, then `0-instruments.md`, `0-memory.md` | mode announced, repo configured, dashboard open |
-| 1 Manifest | `phases/1-manifest.md` | `brief.md`, `manifest.md` |
+| 0 Preflight | `phases/0-modes.md`, `phases/0-preflight.md`, then `0-memory.md`, `0-instruments.md` | mode announced, repo configured, dashboard open |
+| 1 Manifest | `phases/1-manifest.md` | `<дата>-brief.md`, `manifest.md` |
 | 2 Briefing | `phases/2-briefing.md` (+ `2-adversarial.md` when it runs) | answers recorded into the manifest |
-| 3 Spec | `phases/3-spec.md` | `spec.md`, the boundaries in `interfaces.md` |
-| 4 Plan | `phases/4-plan.md` | `tickets/NN-*.md` |
+| 3 Spec | `phases/3-spec.md` | `notes.md` in existing code, `spec.md`, the boundaries in `interfaces.md` |
+| 4 Plan | `phases/4-plan.md` | `tickets/NN-*.md`, the plan commit |
 | 5 Build | `phases/5-subagents.md` | code, one commit per ticket |
 | 6 Review | `phases/6-review.md` — at the first point review, and for the whole-branch review | reviewed code |
 | 8 Final | `phases/8-final.md`, and `phases/9-memory.md` before spawning | blind acceptance, memory, report |
@@ -94,6 +94,7 @@ Binding on every phase; the phases do not restate it.
 │   ├── spec.md                 the specification
 │   ├── interfaces.md           the boundaries, the project rules, what finished tickets built
 │   ├── notes.md                exploration notes, in an existing codebase
+│   ├── memory-proposal.md      what to add to the user's own memory file, if it is theirs
 │   └── tickets/NN-<slug>.md
 ├── README.md        how to read this folder, and the register of runs
 ├── state.js         the run state — written only by ap.py
@@ -119,7 +120,7 @@ Numbers in this skill — tiers, question counts, wave widths — are **calibrat
 2. **A secret is never requested, echoed or written** — not into a file, a prompt, a commit or a report.
 3. **A fact about the user is never invented.** Prices, texts, addresses, accounts stay visible placeholders.
 4. **An irreversible or outward-facing action is a question** — deploy, publish, pay, message a third party, delete data, rewrite history.
-5. **The orchestrator does not write the project's code.** Its keyboard reaches `.autopilot/`, the memory file and git; everything else goes to a subagent (`phases/5-subagents.md`).
+5. **The orchestrator does not write the project's code.** Its keyboard reaches `.autopilot/`, the memory files, `.gitignore`, `.env.example` and git; everything else goes to a subagent (`phases/5-subagents.md`).
 
 ## When to use it
 

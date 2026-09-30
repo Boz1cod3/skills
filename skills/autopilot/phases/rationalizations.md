@@ -46,13 +46,13 @@
 - An invented fact about the user where a stub belongs.
 - A process question outside manual — which tracker, which memory file, ticket granularity.
 - A requirement quietly narrowed to whatever worked, or the spec amended with no `D##`.
-- Two tickets in one context or one commit; a commit that took files outside the ticket's zone.
-- The orchestrator editing a file outside `.autopilot/` and the memory file.
+- Two tickets in one context or one commit; a commit that took files outside the ticket's zone, or swept in work the user had in the tree.
+- The orchestrator editing a file outside `.autopilot/`, the memory files, `.gitignore` and `.env.example`.
 - A diff or a raw test log read into the orchestrator's context.
 - A дозапрос carrying more than the reviewer's `BLOCKING` lines.
 - A reviewer kept alive across tickets, or a ticket marked `Ревью: да` committed without its review.
 - Parallel executors on the same files — or independent tickets flown one at a time.
 - A subagent launched without `interfaces.md` or `prompts/executor.md`, or finishing without the contract block.
 - A secret asked for, repeated back, or written anywhere.
-- A package installed or remote code fetched without the user asking.
-- Text outside the `autopilot` markers edited, or the user's own memory file written into without their yes.
+- A dependency the spec never decided on installed without the decision being made, or anything installed outside the project — global tools, system packages.
+- Text outside the `autopilot` markers edited, the user's own memory file written into without their yes, or a run ending with neither a memory file nor a proposal.

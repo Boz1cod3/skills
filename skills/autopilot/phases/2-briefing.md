@@ -1,6 +1,6 @@
 # Phase 2 — Briefing
 
-The phase the user is actually needed for. Its job is not to collect wishes: it is to **close what cannot be built as written**, and — where the mode or depth asks — to find out what the brief got wrong while changing it is still free. Every question exists to move a row in the manifest.
+`ap.py stage briefing`. The phase the user is actually needed for. Its job is not to collect wishes: it is to **close what cannot be built as written**, and — where the mode or depth asks — to find out what the brief got wrong while changing it is still free. Every question exists to move a row in the manifest.
 
 **Depth decides how much gets opened up; the mode decides who closes it.** A fork found at `deep` is the same fork in every mode — in full you settle it and label the decision, in interview you put it to the user.
 
@@ -24,7 +24,7 @@ The phase the user is actually needed for. Its job is not to collect wishes: it 
 - **Look facts up, ask only decisions.** What stack the repo uses is a fact; which payment provider they have an account with is a decision.
 - **Blocking unknowns go in the first round** — payment, hosting, which accounts exist, where the data lives, an existing system to fit into. Asked at the end, they cost half the project.
 - **Decisions, never secrets.** *Which* provider, *whether* an account exists — yes; the key itself — never.
-- **Never answer for the user.** «Не знаю» → `placeholder`, and the build gets a visible stub.
+- **Never answer for the user.** «Не знаю» → the row stays live with the missing fact named in Основание, and the build puts a visible stub there.
 - **Ask what the brief leaves open — however many that is, including none.** The mode moves the line; the brief decides how much falls on each side of it:
 
 | | Which forks reach the user |
@@ -61,7 +61,7 @@ Whatever the user hands you that the result could be measured against — refere
 
 ## Recording answers
 
-After each round, update the manifest rows at once: a decision into Основание; a cancellation → `dropped` with the user's words; something new → a `G##` row with their phrasing; «не знаю» → `placeholder`. Every answer that **cancels, adds or reverses** is also appended to the brief's `## Дополнения`, dated and verbatim.
+After each round, update the manifest rows at once: a decision into Основание; a cancellation → `dropped` with the user's words; something new → a `G##` row with their phrasing; «не знаю» → the missing fact into Основание. Every answer that **cancels, adds or reverses** is also appended to the brief's `## Дополнения`, dated and verbatim.
 
 ## When the задача changes later
 
@@ -69,7 +69,7 @@ After each round, update the manifest rows at once: a decision into Основа
 
 1. **The brief file first** — their words under `## Дополнения`. First because it is the step that gets skipped.
 2. **The manifest** — `dropped` with the quote, or a new `G##`.
-3. **The plan** — a new `G##` becomes a ticket, a `deferred` row, or a line in the report. Say which and what it does to the rest: «Беру, но лендинг тогда сдвигается».
+3. **The plan** — a new `G##` becomes a ticket, a `deferred` row, or a line in the report. Say which and what it does to the rest: «Беру, но лендинг тогда сдвигается». A ticket means the whole path: a story in the spec, the row `in-spec`, a ticket file, `ap.py tickets` and `ap.py check-plan` — a row that skips the spec is invisible to both.
 
 `G##` is the user's words, `A##` your idea, `D##` what the build proved — never blur them.
 
@@ -77,8 +77,8 @@ After each round, update the manifest rows at once: a decision into Основа
 
 No interview: `ap.py stage briefing skip --note "полный автомат — самобрифинг"`. Run the same list against yourself and write the answers into the manifest.
 
-- **Decisions are yours** — stack, structure, provider, data model, layout. Pick what runs on the user's machine **without a third-party account and without money**, and record `ASSUMPTION — принято за пользователя: …` in Основание; every one is a line in the report.
-- **Facts about the user are not** — prices, texts, addresses, business rules, brand colours: `placeholder`, a visibly labelled stub in the code (`[ЦЕНА — впиши]`, never `4990 ₽`), a line in the report.
+- **Decisions are yours** — stack, structure, provider, data model, layout. Pick what runs on the user's machine **without a third-party account and without money**, and record `ASSUMPTION — принято за пользователя: …` in Основание, plus `ap.py add debt.assumptions "…"` for the dashboard; every one is a line in the report.
+- **Facts about the user are not** — prices, texts, addresses, business rules, brand colours: the missing fact named in Основание, a visibly labelled stub in the code (`[ЦЕНА — впиши]`, never `4990 ₽`), a line in the report.
 - **A paid or account-bound service becomes an adapter** — one interface, a local stub behind it, the credential an empty name in `.env.example`.
 
 ## Closing

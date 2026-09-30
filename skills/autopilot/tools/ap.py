@@ -15,9 +15,11 @@
     python3 .autopilot/ap.py ticket 02 repair --note "пустой адрес проходит — R01.1"
     python3 .autopilot/ap.py ticket 02 done --tests 34/0 --commit a1b2c3d
     python3 .autopilot/ap.py ticket 03 retry | fail --note "…" | reset
+    python3 .autopilot/ap.py stage build done | fail --note "…"
     python3 .autopilot/ap.py add concerns "src/notify.ts:40 — два формата даты"
     python3 .autopilot/ap.py add debt.emptyEnv TELEGRAM_BOT_TOKEN
-    python3 .autopilot/ap.py coverage found=2 fixed=2 deferred=0
+    python3 .autopilot/ap.py coverage found=2 fixed=1 deferred=1 --item "R07 — отложено: …"
+    python3 .autopilot/ap.py add report "Два формата даты в уведомлениях — оставлено"
     python3 .autopilot/ap.py blind checked=12 matched=11 --mismatch "R07 — статус не виден"
     python3 .autopilot/ap.py tests 34/0                 # последний полный прогон
     python3 .autopilot/ap.py finish --result "Бот принимает заявки и пишет их в таблицу"
@@ -64,10 +66,10 @@ REMOTE_SKILL = "https://raw.githubusercontent.com/%s/main/skills/autopilot/SKILL
 STOP_DELAY = 12
 ORDER = ["preflight", "manifest", "briefing", "spec", "plan", "build", "review", "final"]
 # Этап, чей результат лежит на диске, пройден — даже если его забыли отметить.
-ARTIFACT = {"manifest": "manifest.md", "spec": "spec.md", "plan": "tickets"}
+ARTIFACT = {"manifest": "manifest.md", "spec": "spec.md", "plan": "tickets/*.md"}
 TICKET_STATUSES = {"start": "in-progress", "review": "review", "repair": "repair",
                    "done": "done", "fail": "failed", "retry": "in-progress", "reset": "pending"}
-LISTS = {"concerns", "additions", "debt.placeholders", "debt.assumptions", "debt.emptyEnv"}
+LISTS = {"concerns", "additions", "report", "debt.placeholders", "debt.assumptions", "debt.emptyEnv"}
 
 
 def now():
@@ -130,6 +132,11 @@ def fresh_state(a):
 # ── манифест и таски ────────────────────────────────────────────────────────
 
 ROW_ID = re.compile(r"^[RGD]\d+[a-z]?$")
+PIPE = re.compile(r"(?<!\\)\|")          # «\|» внутри цитаты — не граница колонки
+
+
+def cells_of(line):
+    return PIPE.split(line.strip().strip("|"))
 STATUS_KEY = {"done": "done", "in-ticket": "inTicket", "in-spec": "inSpec",
               "placeholder": "placeholder", "deferred": "deferred", "dropped": "dropped"}
 
@@ -142,7 +149,7 @@ def manifest_rows(state):
         return None
     rows = []
     for line in text.splitlines():
-        cells = [c.strip().strip("`*") for c in line.strip().strip("|").split("|")]
+        cells = [c.strip().strip("`*") for c in cells_of(line)]
         if len(cells) >= 3 and ROW_ID.match(cells[0]):
             rows.append((cells[0], cells[2].split()[0].lower() if cells[2] else "open"))
     return rows
@@ -152,6 +159,7 @@ def recount(state):
     rows = manifest_rows(state)
     if rows is None:
         return
+    rows = [(i, st) for i, st in rows if not i.startswith("D")]   # D## — ограничение, не требование
     r = {"total": len(rows), "done": 0, "inTicket": 0, "inSpec": 0,
          "placeholder": 0, "deferred": 0, "dropped": 0}
     for _, st in rows:
@@ -172,7 +180,7 @@ def manifest_update(state, changes):
     for n, line in enumerate(lines):
         if not line.lstrip().startswith("|"):
             continue
-        cells = line.strip().strip("|").split("|")
+        cells = cells_of(line)
         rid = cells[0].strip().strip("`*") if cells else ""
         if rid not in changes or len(cells) < 3:
             continue
@@ -220,7 +228,7 @@ def parse_ticket(path):
     return {
         "id": tid, "title": title,
         "requirements": ids(get("требования", "requirements")),
-        "blockedBy": [x for x in re.findall(r"\b\d+\b", get("зависит от", "blocked by"))],
+        "blockedBy": [x.zfill(2) for x in re.findall(r"\d+", get("зависит от", "blocked by"))],
         "wave": int(wave.group()) if wave else None,
         "zone": re.findall(r"`([^`]+)`", get("зона", "zone")),
         "review": get("ревью", "review") or None,
@@ -266,7 +274,7 @@ def check_plan(state):
     named = {r for t in tickets for r in t["requirements"]}
     base = {r.split(".")[0] for r in named}
     for rid, st in rows:
-        if st in ("in-spec", "in-ticket") and rid not in base:
+        if st in ("in-spec", "in-ticket", "placeholder") and not rid.startswith("D") and rid not in base:
             problems.append("требование %s (%s) не попало ни в один таск" % (rid, st))
     known = {rid for rid, _ in rows}
     ids = {t["id"] for t in tickets}
@@ -337,7 +345,7 @@ def close_passed(state):
         art = ARTIFACT.get(s["id"])
         if s.get("status") != "pending" or rank[s["id"]] >= edge or not art or not state.get("dir"):
             continue
-        if os.path.exists(os.path.join(run_dir(state), art)):
+        if glob.glob(os.path.join(run_dir(state), art)):
             nxt = [o["startedAt"] for o in stages if rank[o["id"]] > rank[s["id"]] and o.get("startedAt")]
             when = min(nxt) if nxt else state.get("updatedAt")
             s["status"], s["startedAt"], s["finishedAt"] = "done", s.get("startedAt") or when, when
@@ -798,6 +806,8 @@ def cmd_numbers(state, name, pos, multi):
         d[k] = int(v) if v.isdigit() else v
     if name == "blind":
         d["mismatches"] = multi.get("mismatch", [])
+    else:
+        d["items"] = multi.get("item", [])
     state[name] = d
 
 
@@ -831,11 +841,18 @@ def cmd_finish(state, opt):
 
 
 def cmd_reopen(state):
+    """Второй бриф в сданном прогоне: фазы 1–8 идут заново, прежние таски остаются."""
     d = state.get("dir") or ""
     if not d.endswith("--wip") and git_mv(d, d + "--wip"):
         state["dir"] = d + "--wip"
     state["finishedAt"] = None
-    stage(state, "final")["status"] = "pending"
+    state["blind"] = None
+    for s in state.get("stages") or []:
+        if s.get("id") != "preflight":
+            for k in ("startedAt", "finishedAt", "note"):
+                s.pop(k, None)
+            s["status"] = "pending"
+    stage(state, "manifest").update(status="active", startedAt=now())
     register_row(state, "в работе", None)
 
 

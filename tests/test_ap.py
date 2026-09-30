@@ -225,6 +225,36 @@ class Run(unittest.TestCase):
         code, out = self.ap("ticket", "09", "start")
         self.assertNotEqual(code, 0)
 
+    def test_escaped_pipe_in_a_quote(self):
+        self.init()
+        self.write("manifest.md", MANIFEST.replace("«складывает в таблицу»", "«таблица \\| или база»"))
+        self.write("tickets/01-a.md", ticket("01", "A", "R01, R02, R05", "—", ["a/"], 1))
+        self.ap("tickets")
+        self.assertRegex(self.manifest(), r"\| R02 \| «таблица \\\| или база» \| in-ticket \|")
+
+    def test_d_rows_are_constraints_not_requirements(self):
+        self.plan()
+        self.write("manifest.md", MANIFEST + "| D01 | схема не держит два адреса | in-spec | таск 02 | spec §3 |\n")
+        code, out = self.ap("check-plan")
+        self.assertNotIn("D01", out)
+        self.assertEqual(self.state()["requirements"]["total"], 4)
+
+    def test_dependencies_accept_a_t_prefix(self):
+        self.plan()
+        self.write("tickets/03-c.md", ticket("03", "C", "R02", "T1, T02", ["c/"], 3))
+        self.ap("tickets")
+        t = {x["id"]: x for x in self.state()["tickets"]}
+        self.assertEqual(t["03"]["blockedBy"], ["01", "02"])
+
+    def test_empty_tickets_dir_does_not_pass_the_plan(self):
+        self.init()
+        self.write("manifest.md", MANIFEST)
+        self.ap("stage", "build")
+        self.assertEqual(self.stage("plan")["status"], "pending")
+        self.write("tickets/01-a.md", ticket("01", "A", "R01", "—", ["a/"], 1))
+        self.ap()
+        self.assertEqual(self.stage("plan")["status"], "done")
+
     # ── lists and numbers ──────────────────────────────────────────────────
     def test_add_set_and_numbers(self):
         self.init()
@@ -232,13 +262,15 @@ class Run(unittest.TestCase):
         self.ap("add", "debt.emptyEnv", "TELEGRAM_BOT_TOKEN")
         self.ap("add", "debt.emptyEnv", "TELEGRAM_BOT_TOKEN")      # без дублей
         self.ap("set", "tier=T2", "baseCommit=abc1234")
-        self.ap("coverage", "found=2", "fixed=2", "deferred=0")
+        self.ap("coverage", "found=2", "fixed=1", "deferred=1", "--item", "R07 — отложено")
+        self.ap("add", "report", "два формата даты", "лишний отступ")
         self.ap("blind", "checked=4", "matched=3", "--mismatch", "R02 — не видно")
         s = self.state()
         self.assertEqual(s["concerns"], ["src/x.ts:4 — два формата даты"])
         self.assertEqual(s["debt"]["emptyEnv"], ["TELEGRAM_BOT_TOKEN"])
         self.assertEqual((s["tier"], s["baseCommit"]), ("T2", "abc1234"))
-        self.assertEqual(s["coverage"], {"found": 2, "fixed": 2, "deferred": 0})
+        self.assertEqual(s["coverage"], {"found": 2, "fixed": 1, "deferred": 1, "items": ["R07 — отложено"]})
+        self.assertEqual(s["report"], ["два формата даты", "лишний отступ"])
         self.assertEqual(s["blind"], {"checked": 4, "matched": 3, "mismatches": ["R02 — не видно"]})
 
     # ── finish ─────────────────────────────────────────────────────────────
@@ -262,6 +294,9 @@ class Run(unittest.TestCase):
         s = self.state()
         self.assertTrue(s["dir"].endswith("--wip"))
         self.assertIsNone(s["finishedAt"])
+        self.assertEqual(self.stage("manifest")["status"], "active")
+        self.assertEqual(self.stage("final")["status"], "pending")
+        self.assertNotIn("finishedAt", self.stage("final"))
 
 
 class Pure(unittest.TestCase):

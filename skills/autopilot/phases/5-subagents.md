@@ -1,22 +1,22 @@
 # Phase 5 — Build
 
-Where the code gets written. **Identical in all four modes, and hands-free**: manual buys control over *what* gets built, not over each edit.
+`ap.py stage build`. Where the code gets written. **Identical in all four modes, and hands-free**: manual buys control over *what* gets built, not over each edit.
 
 ## One ticket, one subagent, one fresh context
 
 Never two tickets in one context — accumulated context is what makes long sessions start breaking what used to work. At T0 the one ticket goes to one executor like any other.
 
-**You dispatch; you do not build.** Your keyboard reaches `.autopilot/**`, the memory file between its markers, and git (`add`, `commit`, `--stat` — never the diff). Every other file is written by someone whose context dies with the ticket. This is rule 5, and it loses to the two arguments that always arrive — «тут две строки» and «исполнитель не смог, доделаю сам»: a diff you read at ticket 02 is still in your context at ticket 08, and your context is the one that is never refreshed.
+**You dispatch; you do not build.** Your keyboard reaches `.autopilot/**`, the memory files, `.gitignore`, `.env.example`, and git (`add`, `commit`, `status`, `--stat` — never the diff). Every other file is written by someone whose context dies with the ticket. This is rule 5, and it loses to the two arguments that always arrive — «тут две строки» and «исполнитель не смог, доделаю сам»: a diff you read at ticket 02 is still in your context at ticket 08, and your context is the one that is never refreshed.
 
 ## What an executor gets — paths, not contents
 
 | | |
 |---|---|
-| `prompts/executor.md` | by path (`skillDir` in `state.js`), **required reading before the first edit** — the testing contract and the return format |
+| `prompts/executor.md` | by path (`skillDir` in `state.js`), **required reading before the first edit** — the testing contract, what is never allowed, the return format |
 | its ticket | by path; it already carries the verbatim brief quotes |
 | the spec sections the ticket names | `spec.md` by path **and section headings** — not the whole spec, not pasted |
 | `interfaces.md` | by path, read first |
-| `notes.md` | by path, in a brownfield repo |
+| `notes.md` | by path, in an existing codebase |
 | `reference.md` | by path, when the ticket builds something the user will look at |
 | the check command and how to run one test file | from `interfaces.md` — so it does not derive them |
 | its zone, and what it must not touch | zones of tickets flying beside it included |
@@ -26,17 +26,19 @@ A subagent has a filesystem; pasting what it can read writes the same words twic
 
 **The model.** A ticket marked `Модель: сильная` runs on the session's model. `обычная` runs on a cheaper one — in Claude Code, `model: "sonnet"` on the Agent call; a harness without a model choice ignores this silently. A ticket that already failed once is relaunched on the strong model.
 
+**Dependencies.** Ticket 01 installs everything the spec's «Решения по реализации» names. A later ticket that needs something else returns `BLOCKED` with its name; if it fits a decision already made, add it to «Решения», relaunch that ticket with permission to install exactly that — the manifest and lock files join its commit — and fly nothing else that installs at the same time.
+
 ## Waves
 
 Phase 4 gave every ticket a wave and a zone. **Launch a whole wave in one message, one subagent call per ticket, in the background** — two calls in two messages run one after the other, and the parallelism computed in the plan is thrown away in the delivery.
 
 - **At most three in flight.** A wave of five goes out as three, then two.
-- **Zones disjoint** — checked again at launch; same files → serialise.
+- **Zones disjoint** — checked again at launch; same files → serialise. When in doubt, serialise.
 - **A wave is not a barrier.** When a ticket returns, first launch the next ticket whose dependencies are all committed, then process the one that landed.
 - **A dependent never launches on an uncommitted parent.**
 - `ap.py ticket 02 03 start` goes **before** the launch — one call for the whole wave.
 
-**One working tree, several writers.** Parallel executors share the checkout, so each touches only its zone, and you commit by zone: `git add -- <zone>`. A red check whose failing tests sit in a neighbour's zone is the neighbour's unfinished work, not this ticket's defect — let the neighbour land and run the check again before blaming anyone.
+**One working tree, several writers.** Parallel executors share the checkout. Each touches only its zone (and `.env.example`), and you commit by zone. A check that fails **only in files of zones still being written** is a neighbour's unfinished work, not this ticket's defect: the ticket may land on its own tests green, and the full check runs again when the neighbour lands.
 
 ## The return contract
 
@@ -59,17 +61,25 @@ BLOCKERS: чего не хватило (зависимость, решение, 
 
 In this order:
 
-1. **Read the contract.** No block → the ticket is not finished; ask for it.
-2. **Append its `INTERFACES` to `interfaces.md`** — you, never the executors; parallel writers collide. Two returns claiming one interface is a plan defect: keep the one that fits and re-cut the other.
-3. **Point review, if the ticket says `Ревью: да`** — `ap.py ticket NN review`, then `phases/6-review.md`. Otherwise straight to 4. A contract whose `REQUIREMENTS` line reports a row of this ticket as not done, or a `CONCERNS` line about a requirement rather than about craft, sends the ticket to point review too.
-4. **Run the check**, full, truncated: `<check> 2>&1 | tail -30`. You need green-or-red, the names of what failed, and **the count** — compare it with the contract: a `DONE` that added criteria and no tests is a дозапрос, and a suite reporting zero tests is red however it exits.
-5. **A red check or a `BLOCKING` finding → `phases/5-repair.md`**, opened now and not before. `BLOCKED` and `NEEDS_CONTEXT` go there too. `DONE_WITH_CONCERNS` → each concern into `ap.py add concerns`.
-6. **Commit and record in one call** — one commit per ticket, its number in the subject, only its zone: the chained command in `phases/0-instruments.md` §4. Only now is the ticket `done`; these commits are the user's rollback points.
-7. **Project memory — only if something was discovered** (`phases/9-memory.md`, Moment 2). Most tickets add nothing.
-8. **One plain line to the user**: «Бот принимает заявки — 3 из 8 готово».
+1. **Read the contract and its status.** No block → the ticket is not finished; ask for it. `BLOCKED` or `NEEDS_CONTEXT` → `phases/5-repair.md` now. A `CONCERNS` line saying the plan does not hold — a data model, an interface, two requirements colliding — is the build contradicting the plan: `phases/5-repair.md` too. Two `NEEDS_CONTEXT` in one run mean the tickets are too thin across the board.
+2. **Nothing outside the zone.** `git status --porcelain`: a changed file outside this ticket's zone, `.env.example` and the zones still in flight is a дозапрос — put it back or say why it had to change.
+3. **Append its `INTERFACES` to `interfaces.md`** — you, never the executors; parallel writers collide. Two returns claiming one interface is a plan defect: keep the one that fits and re-cut the other.
+4. **Run the check**, full, truncated: `<check> 2>&1 | tail -30`, **and read it before anything else happens** — green or red, the names of what failed, and the count. Compare the count with the contract: a `DONE` that added criteria and no tests is a дозапрос, and a suite reporting zero tests is red however it exits.
+5. **Point review, if the ticket says `Ревью: да`**, or the contract reports one of its requirements as not done: `ap.py ticket NN review`, then `phases/6-review.md`.
+6. **Red, or a `BLOCKING` finding → `phases/5-repair.md`.** Nothing is committed on red, and nothing is repaired by you.
+7. **Commit and record — one call, only its zone:**
 
-Nothing is committed on red, and nothing is repaired by you. **Two tickets returning together are processed one at a time**, each through the whole list: one commit each, a check after each — otherwise a red has two possible authors.
+   ```bash
+   git add -A -- src/bot/ tests/bot/ .env.example && git commit -qm "T03: приём заявки" -- src/bot/ tests/bot/ .env.example \
+     && python3 .autopilot/ap.py ticket 03 done --tests 34/0 --commit "$(git rev-parse --short HEAD)"
+   ```
 
-## When the last ticket lands
+   The paths are every path of its zone that exists, plus `.env.example` if the ticket changed it — git refuses a path that matches nothing; `--tests` is what step 4 actually printed; `--placeholder R05` for each row the contract reports as a stub. One commit per ticket — the user's rollback points.
+8. **The ledger.** Each stub the contract names → `ap.py add debt.placeholders`; each new variable → `add debt.emptyEnv NAME`; each `A##` that reached the code → `add additions`; each `CONCERNS` line about craft → `add concerns`. Project memory only if something was discovered (`phases/9-memory.md`, Moment 2) — most tickets add nothing.
+9. **One plain line to the user**: «Бот принимает заявки — 3 из 8 готово».
 
-`ap.py stage review` and `phases/6-review.md` — the whole-branch review, before the final phase.
+**Two tickets returning together are processed one at a time**, each through the whole list: one commit each, a check after each — otherwise a red has two possible authors.
+
+## When the build is over
+
+Every ticket is `done`, or `failed` with its dependents named to the user as waiting. Then `ap.py stage review` and `phases/6-review.md` — the whole-branch review.
