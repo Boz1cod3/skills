@@ -1,6 +1,7 @@
 ---
 name: autopilot
-description: Use when the user dictates an app, site, bot, or feature to build end-to-end and expects a finished result without reviewing specs, tickets, or code — vibecoding sessions, non-technical users, «собери под ключ», "build it for me", «не задавай лишних вопросов». Also use on /autopilot, «продолжи автопилот», or a build asked for in a named mode or depth — «полный автомат», «режим интервью», «ручной режим», «строго по брифу», «проработай глубоко».
+description: Builds an app, site, bot, or feature end-to-end from a dictated idea — requirements, briefing, spec, tickets, subagents, review, acceptance — with a live dashboard, for users who expect a finished result without reviewing specs or code. Starts only on /autopilot; a bare /autopilot resumes an interrupted run.
+disable-model-invocation: true
 argument-hint: "[full|semi|interview|manual] [strict|deep] что нужно построить или путь к brief.md"
 metadata:
   version: "2.0.0"
@@ -104,9 +105,10 @@ Binding on every phase; the phases do not restate it.
 
 AGENTS.md (+ CLAUDE.md → @AGENTS.md)   the project memory — or the user's own file, left untouched
 docs/architecture.md, docs/adr/        at T2+: how it is built, and why
+CONTEXT.md                             at T2+: the project's words — or the user's own, only added to
 ```
 
-`.autopilot/` is committed — it is the user's record of what was promised and delivered. The memory file is the project as it stands for whoever opens it next; `docs/adr/` is why it stands that way; `spec.md` is throwaway once the work ships.
+`.autopilot/` is committed — it is the user's record of what was promised and delivered. The memory file is the project as it stands for whoever opens it next; `docs/adr/` is why it stands that way; `CONTEXT.md` is what its words mean; `spec.md` is throwaway once the work ships.
 
 ## Judgement
 

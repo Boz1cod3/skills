@@ -5,7 +5,7 @@
 | Agent | Question | Receives | Never receives |
 |---|---|---|---|
 | blind checker | что из брифа сделано | the brief files, the repository | `spec.md`, `manifest.md`, tickets |
-| ADR *(T2+)* | почему сделано именно так | `spec.md`, `manifest.md`, `interfaces.md` | the repo |
+| ADR *(T2+)* | почему сделано именно так и как здесь называются вещи | `spec.md`, `manifest.md`, `interfaces.md`, `notes.md` | the repo |
 | memory | как этим пользоваться завтра | the repo, the memory file, `interfaces.md`, the tier, the commands the checker ran | `spec.md`, tickets |
 
 ## 1. Blind acceptance — gate G4
@@ -57,7 +57,7 @@ Record it in one call — `ap.py blind checked=N matched=M --mismatch "…" --mi
 
 ## 2. Memory and ADRs
 
-**Read `phases/9-memory.md` before spawning them** — Moments 3 and 4 there are their whole brief. When the memory file is the user's own, the memory agent writes `memory-proposal.md` instead of touching it.
+**Read `phases/9-memory.md` before spawning them** — Moments 3 and 4 there are their whole brief, the glossary included. When the memory file is the user's own, the memory agent writes `memory-proposal.md` instead of touching it.
 
 ## 3. The final report
 
@@ -118,7 +118,7 @@ Run the check once more first, truncated, and record it — `ap.py tests N/M`. T
 ## Где что лежит
 
 - Описание проекта для следующего раза — `AGENTS.md` в корне
-- Почему сделано именно так — `docs/adr/` (если проект крупный)
+- Почему сделано именно так — `docs/adr/`, словарь проекта — `CONTEXT.md` (если проект крупный)
 - Прогресс и цифры — `.autopilot/dashboard.html`
 - Твоя задача, требования, спецификация — `.autopilot/<папка сборки>/`
 ```
@@ -133,13 +133,13 @@ Run the check once more first, truncated, and record it — `ap.py tests N/M`. T
 
 In this order, so the report names paths that exist:
 
-1. The memory file (or its proposal) and the ADRs are written.
+1. The memory file (or its proposal), the ADRs and the glossary are written.
 2. `python3 .autopilot/ap.py finish --result "<одна строка: что теперь есть>"` — closes every stage, sets `finishedAt`, renames `<dir>--wip` to `<dir>` with `git mv`, closes the run's row in `.autopilot/README.md`, and puts the server out twelve seconds later, after the page has fetched the final picture. A `!` line about the rename means the name was taken or the index dirty: leave it, the run is not undone by a cosmetic suffix.
 3. **The final commit** — exactly what this skill wrote since the plan commit, never the rest of the tree, where the user may have work of their own:
 
    ```bash
-   git add -A -- .autopilot AGENTS.md CLAUDE.md docs/architecture.md docs/adr .env.example .gitignore \
-     && git commit -qm "Autopilot: сборка сдана" -- .autopilot AGENTS.md CLAUDE.md docs/architecture.md docs/adr .env.example .gitignore
+   git add -A -- .autopilot AGENTS.md CLAUDE.md docs/architecture.md docs/adr CONTEXT.md GLOSSARY.md .env.example .gitignore \
+     && git commit -qm "Autopilot: сборка сдана" -- .autopilot AGENTS.md CLAUDE.md docs/architecture.md docs/adr CONTEXT.md GLOSSARY.md .env.example .gitignore
    ```
 
    Leave out of both lists any path that does not exist, and the memory file if it is the user's own. The code itself went in ticket by ticket. `git status` afterwards: a changed file outside everything any ticket owned is not committed by you — it goes in the report as «осталось незакоммиченным».

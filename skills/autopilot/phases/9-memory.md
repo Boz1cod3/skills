@@ -8,6 +8,7 @@ The file the **next** session reads first. Chosen in Phase 0 (`phases/0-memory.m
 | `interfaces.md` | what earlier tickets built, for the tickets still to come | dies with the run |
 | the memory file | what an agent needs to work here **tomorrow** | present tense |
 | `docs/adr/` | **why** it is this way, and what was rejected | past tense on purpose |
+| `CONTEXT.md` | what the project's words **mean**, and which synonyms to avoid | present tense, no code |
 
 Everything in the memory file must be true of the repository as it stands — not of the plan.
 
@@ -73,15 +74,15 @@ The same agent writes `memory-proposal.md` instead of the block: what is missing
 
 The report asks once, at the end: «Предлагаю дополнить твой `CLAUDE.md`: 4 пункта — команды запуска и две переменные `.env`. Применить?» — in semi, interview and manual. **In full nothing is asked**: the proposal stays a file, and the report names it. On a yes, the additions go into a marked Autopilot block at the end of their file; a line of their own text changes only as they approved it.
 
-## Moment 4 — the ADRs (Phase 8, tier T2+)
+## Moment 4 — the ADRs and the glossary (Phase 8, tier T2+)
 
 The memory file answers «как этим пользоваться»; ADRs answer «почему так» — what was chosen, what was rejected and why. `spec.md` holds that reasoning now and is worthless the day the work ships, so what deserves to survive is routed into `docs/adr/`.
 
-Three sources, nothing else: **every `D##` row** (the plan proved wrong — the most valuable kind); **load-bearing implementation decisions** (data model, module boundaries, an external service — anything whose reversal means rebuilding); **a term the project uses its own way**, one ADR for the vocabulary. Not: a decision with no alternative, anything a linter or framework decided, the obvious default. Three to six files on T2, five to twelve on T3.
+Three sources, nothing else: **every `D##` row** (the plan proved wrong — the most valuable kind); **load-bearing implementation decisions** (data model, module boundaries, an external service — anything whose reversal means rebuilding). Vocabulary is not a decision — it goes to the glossary below. Not: a decision with no alternative, anything a linter or framework decided, the obvious default. Three to six files on T2, five to twelve on T3.
 
-**A subagent, in parallel with the other two, on the cheaper model.** It receives `spec.md`, `manifest.md` and `interfaces.md` (the boundaries live there), **not the repository** — it documents decisions, not code.
+**A subagent, in parallel with the other two, on the cheaper model.** It receives `spec.md`, `manifest.md`, `interfaces.md` (the boundaries live there) and `notes.md` when it exists (the names the code already uses), **not the repository** — it documents decisions and words, not code.
 
-> По приложенным спецификации, манифесту и `interfaces.md` напиши по одному ADR на каждое решение,
+> По приложенным спецификации, манифесту, `interfaces.md` и `notes.md` напиши по одному ADR на каждое решение,
 > которое дорого отменять, и на каждую строку `D##`. Не вызывай скиллы
 > и не запускай своих агентов.
 >
@@ -97,8 +98,41 @@ Three sources, nothing else: **every `D##` row** (the plan proved wrong — the 
 > Для `D##` контекст — то, что план предполагал, а решение — то, что код
 > доказал. Не пиши ADR на решение без альтернативы. Не пересказывай
 > спецификацию. Не описывай код — ты его не видел.
+>
+> Затем словарь — `CONTEXT.md` в корне. Только слова этого проекта, которые
+> новичок назовёт иначе или поймёт не так: «заявка», «смена», «бронь» — да;
+> «пользователь», «API», «таймаут» — нет. Термин — на языке брифа, тем словом,
+> которым его называют спецификация и код (`notes.md`, `interfaces.md`), а не
+> синоним. Таких слов нет — файла нет. Формат:
+>
+> ```
+> <!-- autopilot:glossary -->
+> # <Название проекта>
+>
+> <Одна-две строки: что это за область.>
+>
+> ## Язык
+>
+> **Заявка**:
+> Обращение клиента, которое ждёт ответа менеджера.
+> _Избегать_: запрос, тикет, лид
+> ```
+>
+> Определение — одна-две строки о том, что это такое, а не что с ним делает
+> код. Когда для одного понятия в брифе и спецификации встречаются разные
+> слова — выбери одно, остальные — в «_Избегать_». Без путей, полей и стека.
 
 If `docs/adr/` exists, **continue its numbering and format**; never renumber what is there. ADRs go into the final commit with the memory file and get one line in the report.
+
+**The glossary is where the next run looks first for the project's words** — `phases/0-preflight.md` and `phases/3-spec.md` read it, and the spec speaks it. Three to fifteen terms is the usual range; a glossary of everything is a glossary of nothing. The agent does not see the repo, so an existing glossary is handed to it, with one line added to its brief that says whose it is.
+
+**Whose glossary it is** — decided like the memory file, by the marker on its first line:
+
+- **`<!-- autopilot:glossary -->` — Autopilot's.** It is kept true, not only added to, because the next run trusts it over the code. Each run answers for what **it** changed: a term whose meaning this run's spec changed gets its definition rewritten; a term whose concept this run removed — by the user's word or a `D##` — is deleted. A term this run never touched is left as it is: the agent has not seen the code, and «not in my spec» is not «gone from the project». The brief line: «Это словарь Autopilot: перепиши определения, смысл которых эта спецификация изменила, и удали термины, которые она убрала; остальные не трогай».
+- **No marker — the user's.** A `GLOSSARY.md` is continued in its own format; a `CONTEXT.md` gets the new terms and **none of the old ones changes** — a term the build now uses differently comes back to you and goes into the report as a question, not into the file.
+- **A `CONTEXT-MAP.md`** means several contexts — the brief drops the glossary paragraph, and the report says so in one line.
+
+**Past about forty terms the project has outgrown one glossary** — usually it now holds two areas where one word means different things. Autopilot does not split it: the report suggests it in one line, and the split is the user's call. The glossary goes into the final commit with the ADRs.
 
 ## On resume
 
