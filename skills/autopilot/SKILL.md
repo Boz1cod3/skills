@@ -3,7 +3,7 @@ name: autopilot
 description: Use when the user dictates an app, site, bot, or feature to build end-to-end and expects a finished result without reviewing specs, tickets, or code — vibecoding sessions, non-technical users, «собери под ключ», "build it for me", «не задавай лишних вопросов». Also use on /autopilot, «продолжи автопилот», or a build asked for in a named mode or depth — «полный автомат», «режим интервью», «ручной режим», «строго по брифу», «проработай глубоко».
 argument-hint: "[full|semi|interview|manual] [strict|deep] что нужно построить или путь к brief.md"
 metadata:
-  version: "1.1.0"
+  version: "2.0.0"
 ---
 
 # Autopilot
