@@ -29,6 +29,7 @@ Two counters, both capped at two: `repairs` (дозапросы) and `retries` (
 - **A condition, never «поправь»** — this test green, this field visible, this error handled.
 - **The repair returns the contract again** — new `FILES`, new `TESTS`.
 - **A reviewed ticket's repair is re-reviewed, scoped to the fix** — mode «ремонт» in `prompts/review.md`: a fresh reviewer gets `git diff -- <zone>` and the conditions, verdicts each closed or not, and flags new breakage inside the fix only. Never the whole ticket again. A repair of an unreviewed ticket (a red check) needs only the check green again.
+- **Two re-reviews per ticket, then it lands.** What the second re-review still finds open goes to the report with its reproduction (`ap.py add report`), unless it is a red check or a requirement not delivered — those stay blocking. A sanitizer a reviewer can always find one more bypass for is the typical case.
 - **Two дозапроса into one context, then the right-hand column.**
 - If the harness cannot continue a subagent, the fallback is a fresh context with the full ticket prompt plus the finding — never your own keyboard.
 
@@ -40,7 +41,7 @@ Not a failure. If the dependency fits a decision the spec already made, add it t
 
 `ap.py ticket NN retry`, then a fresh context with the error attached, on the strong model. A second retry only **with a changed approach** — a different design decision, a different library, a path the ticket now names explicitly; the same attempt with more hope is the one forbidden move.
 
-After that the flight stops for this ticket: `ap.py ticket NN fail --note "что блокирует"`, `placeholder` in the manifest with the reason, and a plain sentence to the user — what is blocking, what you need from them, and which tickets are now waiting on it. Never improvise around a blocker and never narrow the ticket to whatever happened to work: a quietly reduced ticket is a lost requirement. Its wave-mates are independent by construction — let them land.
+After that the flight stops for this ticket: `ap.py ticket NN fail --note "что блокирует"`, the reason in its manifest rows' Основание, and a plain sentence to the user — what is blocking, what you need from them, and which tickets are now waiting on it. Never improvise around a blocker and never narrow the ticket to whatever happened to work: a quietly reduced ticket is a lost requirement. Its wave-mates are independent by construction — let them land.
 
 ## When the build contradicts the plan
 
