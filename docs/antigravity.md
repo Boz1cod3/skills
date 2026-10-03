@@ -12,7 +12,7 @@
 | `/autopilot` expands under `agy -p` | yes — `init.expanded_commands = [{"name":"autopilot","type":"skill"}]` |
 | Prompt delivery | `-p "<prompt>"` and stdin (no `-p`) both work |
 | Headless permissions | without `--dangerously-skip-permissions` every `run_command` is auto-denied and the process ends with empty output |
-| End of a turn in `-p` | the process exits; a wave-waiting turn end therefore ends the run (see Task 0b) |
+| `invoke_subagent` in `-p` | synchronous: `[subagent DONE]` arrives inline and the same turn continues; a turn that ends early (e.g. `semi` mode right after announcing the plan) ends the whole process |
 | Stream events (`stream-json`) | `init` (`conversation_id`, `init.tools`, `init.permission_mode`, `init.expanded_commands`), `step_update`, `result` (`status`, `response`, `conversation_id`, `denied_actions`) |
 | Tools seen in `init.tools` | `invoke_subagent`, `manage_subagents`, `ask_question`, `wait`, `open_browser_url`, `run_command`, no `Agent` |
 | `python3` on the owner's machine | Microsoft Store stub (does not run); `python` 3.11 and `py -3` 3.12 work |
@@ -22,4 +22,19 @@ Reference adapter (aif-handoff PR #184, `adapters/antigravity/cli.ts`, read at `
 
 ## Baseline: unmodified Autopilot under `agy -p`
 
-`/autopilot semi A tiny CLI that prints hello` (headless, permissions skipped) reached the Разработка stage in one process: it found the skill directory by searching the disk (three wasted commands), bootstrapped `.autopilot/` with PowerShell by itself, ran `init` without a `runtime` field, opened the dashboard with `cmd /c start`, dispatched a spec reviewer (`invoke_subagent`, `Model: flash`, `TypeName: research`) and an executor (`Model: inherit`, `TypeName: self`), committed the plan — and then ended its turn to wait for the executor, which ended the process with ticket 01 `in-progress`.
+`/autopilot semi A tiny CLI that prints hello` (headless, permissions skipped) reached the Разработка stage in one process: it found the skill directory by searching the disk (three wasted commands), bootstrapped `.autopilot/` with PowerShell by itself, ran `init` without a `runtime` field, opened the dashboard with `cmd /c start`, dispatched a spec reviewer (`invoke_subagent`, `Model: flash`, `TypeName: research`) and an executor (`Model: inherit`, `TypeName: self`), committed the plan — the executor returned inside the turn, then the model ended its turn after announcing the plan (`semi` mode) and the process exited with the run unfinished.
+
+## Headless waves (verified 2026-10-03)
+
+`/autopilot full A tiny CLI that prints hello` under `agy -p … --dangerously-skip-permissions`, one invocation:
+
+| Question | Result |
+|---|---|
+| Rounds to `finishedAt` | **1** (442 s, 1.14 M tokens, 3 commits: plan, T01, final). `invoke_subagent` blocks inside the turn, so there is nothing to wait for. |
+| Executor reliability | the first executor (`Model: flash`, `TypeName: self`) reported DONE **without writing files** (`retries 1`, `repairs 1`: "files not created on disk, tests fail"); the retry on `pro` and a third `code_builder` call produced the code. Autopilot's own failed-ticket rule handled it, but at the cost of two extra executors. |
+| Read-only roles | spec reviewer (`flash`, `research`), whole-branch reviewer and blind checker (`pro`) worked. |
+| Duplicate commits / stalls | none; ticket 01 `done`, blind check 4/4, `denied_actions` empty. |
+| `runtime` in `state.js` | empty — the field does not exist yet (Task 2). |
+| Bare `/autopilot` resume of a cut-off run | **not exercised** (never needed in `full`); the earlier `semi` run is the case that needs it. Verified in the Task 6 `semi` smoke. |
+
+Consequences: the launcher's resume loop is for modes that end their turn early (`semi`), not for waiting on subagents; executors map to `Model: "inherit"`; `flash` is kept for read-only reviewers only.

@@ -4,7 +4,7 @@
 
 **Goal:** Make the Autopilot skill run natively in Antigravity (IDE + `agy` CLI, Windows/PowerShell) without changing Claude Code behaviour.
 
-**Architecture:** Shared phases stay untouched except one pointer line each. All host-specific behaviour moves into one file, `phases/runtime.md`, with a section per runtime; the agent selects its section from its own tool list and records it in `state.js` (`init --runtime`). A new `ap.py setup` command replaces the unix-only bootstrap for Antigravity. A small `tools/agy-run.py` launches Autopilot headless through `agy -p`, auto-approving permissions (headless cannot prompt) and re-entering a bare `/autopilot` (the skill's own resume) until `state.js` reports `finishedAt`, because a finished turn ends the `-p` process.
+**Architecture:** Shared phases stay untouched except one pointer line each. All host-specific behaviour moves into one file, `phases/runtime.md`, with a section per runtime; the agent selects its section from its own tool list and records it in `state.js` (`init --runtime`). A new `ap.py setup` command replaces the unix-only bootstrap for Antigravity. A small `tools/agy-run.py` launches Autopilot headless through `agy -p`, auto-approving permissions (headless cannot prompt) and re-entering a bare `/autopilot` (the skill's own resume) until `state.js` reports `finishedAt`, because a turn that ends early (e.g. `semi` mode right after announcing the plan) ends the `-p` process.
 
 **Tech Stack:** Python 3 stdlib only (`unittest`, `subprocess`, `shutil`), Markdown, PowerShell 7 (`pwsh`).
 
@@ -45,63 +45,11 @@ Results are recorded in `docs/antigravity.md` (created in this task). Summary: a
 
 ---
 
-### Task 0b: Spike — can a headless run survive a wave? (blocks Task 3 wording and Task 4 loop limits)
+### Task 0b: Spike — can a headless run survive a wave? (DONE 2026-10-03)
 
-**Why:** In `agy -p` a baseline `/autopilot semi …` run dispatched executor T01 via `invoke_subagent` and then ended its turn (as `phases/5-subagents.md` instructs). The process exited with `result.status = SUCCESS` and ticket 01 left `in-progress`. We need to know what happens to that subagent and whether a bare `/autopilot` (the skill's own resume, `phases/0-resume.md`) picks the run up.
+**Result (details in `docs/antigravity.md` → "Headless waves"):** `/autopilot full …` finished in **one** `agy -p` round — `invoke_subagent` is synchronous in print mode, so no waiting problem exists. The earlier "turn end kills the run while waiting for a subagent" reading was wrong: that `semi` run ended because the model ended its turn after announcing the plan. Two live findings change the plan: a `Model: flash` executor reported DONE without writing files (executors now map to `inherit`), and a bare-`/autopilot` resume is still unproven (covered by the `semi` smoke in Task 6).
 
-**Files:**
-- Modify: `docs/antigravity.md` (append a "Headless waves" section with the findings)
-
-**Interfaces:**
-- Produces: the answers to Q1–Q3 below; Task 3 and Task 4 use them.
-
-- [ ] **Step 1: Re-create the scratch project and run a headless round**
-
-```powershell
-$t = Join-Path $env:TEMP "ap-spike0b"; Remove-Item -Recurse -Force $t -ErrorAction SilentlyContinue
-New-Item -ItemType Directory $t | Out-Null; git -C $t init -q
-Push-Location $t
-npx -y skills add d:/ANTIGRAVITY/Autopilot --skill autopilot -a antigravity --copy -y | Out-Null
-agy -p "/autopilot full A tiny CLI that prints hello" --output-format stream-json --mode accept-edits --dangerously-skip-permissions 2>&1 | Set-Content $env:TEMP\r1.txt
-python .autopilot\ap.py --no-serve | Select-String "build|ticket|T0"
-git log --oneline
-Pop-Location
-```
-Record **Q1:** at process exit, is the executor's work (`src/hello_cli`, commits) present, partial, or absent? (`git status --short`, `git log`).
-
-- [ ] **Step 2: Resume with a bare `/autopilot` and watch**
-
-```powershell
-Push-Location $t
-agy -p "/autopilot" --output-format stream-json --mode accept-edits --dangerously-skip-permissions 2>&1 | Set-Content $env:TEMP\r2.txt
-Get-Content .autopilot\state.js | Select-String '"finishedAt"|"status"'
-Pop-Location
-```
-Record **Q2:** did the second round finish the ticket (and how many rounds until `finishedAt`)? Repeat Step 2 up to 6 times, counting rounds. Record **Q3:** did a resume ever redo a ticket from scratch, double-commit, or stall without changing `updatedAt`?
-
-- [ ] **Step 3: Decide and record**
-
-Append to `docs/antigravity.md`:
-```markdown
-## Headless waves (verified <date>)
-
-| Question | Result |
-|---|---|
-| Executor work at process exit | <Q1> |
-| Rounds of bare `/autopilot` to finish the toy run | <Q2> |
-| Duplicate/redone work or stalls on resume | <Q3> |
-```
-Replace each `<…>` with the recorded value. Decision rule:
-- Q2 finishes in ≤ 6 rounds with no duplicate work → proceed as planned (Task 4 loop re-enters `/autopilot`; `runtime.md` keeps "end your turn to wait").
-- Otherwise → stop and report to the owner; candidate fixes are an in-flight-ticket rule in `runtime.md` (`ticket NN retry` on resume) or a blocking-wait instruction (`wait` / `manage_subagents`), each needing its own spike.
-
-- [ ] **Step 4: Clean up and commit**
-
-```powershell
-Remove-Item -Recurse -Force $env:TEMP\ap-spike0b, $env:TEMP\r1.txt, $env:TEMP\r2.txt
-git add docs/antigravity.md
-git commit -m "docs: headless wave findings"
-```
+- [x] **Done:** runs recorded, findings appended to `docs/antigravity.md`, committed with the next docs commit.
 
 ---
 
@@ -340,10 +288,10 @@ Record it with `init --runtime <id>`. On a resume read `runtime` from `state.js`
 
 ## antigravity
 
-- **Dispatch:** `invoke_subagent` per ticket — `TypeName: "self"`, `Role: "Executor T<NN>"`, `Workspace: "inherit"` (one shared checkout, zones and commit-by-zone work exactly as in `phases/5-subagents.md`), `Prompt` = the paths-not-contents contract and the return contract from that file. Launch a whole wave in one tool-call block. Ending your turn is how you wait: the subagent's message wakes you (in a headless `agy -p` run the process ends with the turn and the launcher re-enters `/autopilot`; on that resume a ticket that is `in-progress` without a commit is re-checked before it is launched again). Subagents do not spawn subagents. Do not use `Workspace: "branch"` — it moves commits onto branches, which breaks commit-by-zone.
+- **Dispatch:** `invoke_subagent` per ticket — `TypeName: "self"`, `Role: "Executor T<NN>"`, `Workspace: "inherit"` (one shared checkout, zones and commit-by-zone work exactly as in `phases/5-subagents.md`), `Prompt` = the paths-not-contents contract and the return contract from that file. Launch a whole wave in one tool-call block. Ending your turn is how you wait: the subagent's message wakes you (in a headless `agy -p` run `invoke_subagent` blocks inside the turn, so a wave is simply awaited; if the process ends early the launcher re-enters `/autopilot` and a ticket that is `in-progress` without a commit is re-checked before it is launched again). Subagents do not spawn subagents. Do not use `Workspace: "branch"` — it moves commits onto branches, which breaks commit-by-zone.
 - **Ask:** plain chat text. `ask_question` is allowed for the forks of `interview` and `manual`, one question per call.
 - **Dashboard:** `ap.py` serves it. Open it with `Start-Process "http://localhost:<PORT>/dashboard.html"` through `run_command`, and print the address in the chat. A failure to open is not an error. There is no side pane.
-- **Model tier:** `обычная` → `Model: "flash"`; `сильная` and every retried ticket → `Model: "inherit"`.
+- **Model tier:** every executor → `Model: "inherit"` (in the live trial a `flash` executor reported DONE without writing files; `обычная` therefore does not mean a cheaper model here). Read-only roles (spec reviewer, blind checker, whole-branch reviewer) may use `Model: "flash"`.
 - **Bootstrap:** `<skillDir>` is the directory that contains the `SKILL.md` you were given. If you were not given its path, look — in this order, stop at the first hit — for `skills/autopilot/SKILL.md` under `.agents/skills/autopilot`, `~/.agents/skills/autopilot`, `~/.gemini/config/skills/autopilot`; do not search the whole disk. Run `python "<skillDir>/tools/ap.py" setup` (it prints `skillDir`), then `python .autopilot/ap.py init … --runtime antigravity --skill-dir "<skillDir>"`. If `python` is not a working interpreter use `py -3`.
 - **Shell:** the shell is PowerShell. `&&` chains work in PowerShell 7 (`pwsh`); in Windows PowerShell 5.1 write `a; if ($?) { b }`. Read exit codes from `$LASTEXITCODE`.
 - **Memory file:** unchanged — Antigravity reads `AGENTS.md` natively.
@@ -392,7 +340,7 @@ git commit -m "feat(skill): runtime contract for Claude Code and Antigravity"
 
 ### Task 4: `tools/agy-run.py` — headless launcher with resume loop
 
-**Why the loop:** in `agy -p` a finished turn is a finished process, and Autopilot ends its turn to wait for subagents (Task 0b). The launcher therefore re-enters a bare `/autopilot` — the skill's own resume, driven by `state.js` — until the run reports `finishedAt`, with a round cap and a no-progress guard. Headless cannot prompt for permissions (every `run_command` is auto-denied), so permissions are auto-approved by default for **all** modes; `--ask-permissions` opts out.
+**Why the loop:** in `agy -p` a finished turn is a finished process, and a mode that ends its turn early (`semi` stops after announcing the plan) leaves the run unfinished. `full` completed in one round in the live trial (Task 0b). The launcher therefore re-enters a bare `/autopilot` — the skill's own resume, driven by `state.js` — until the run reports `finishedAt`, with a round cap and a no-progress guard. Headless cannot prompt for permissions (every `run_command` is auto-denied), so permissions are auto-approved by default for **all** modes; `--ask-permissions` opts out.
 
 **Files:**
 - Create: `skills/autopilot/tools/agy-run.py`
@@ -852,7 +800,7 @@ Expected: a line `сервер поднят: http://localhost:<PORT>/dashboard.h
 
 In an Antigravity session inside a scratch project with the skill installed (docs/antigravity.md): run `/autopilot semi A tiny CLI that prints hello`. Pass criteria: the agent reads `phases/runtime.md`, selects `antigravity`, runs `setup` then `init --runtime antigravity`, dispatches at least one executor via `invoke_subagent`, and the dashboard shows progress. Record any deviation in `docs/antigravity.md` → Known limits.
 
-Then the same toy run headless: `python <skillDir>/tools/agy-run.py --mode full --project <scratch-project> "A tiny CLI that prints hello"`. Pass criteria: exit code 0, `.autopilot/state.js` has `finishedAt`, and the number of rounds is printed in the transcript (one `agy` invocation per round). Record the round count in `docs/antigravity.md`.
+Then the same toy run headless, twice: `python <skillDir>/tools/agy-run.py --mode full --project <scratch-project> "A tiny CLI that prints hello"` (expect 1 round) and the same with `--mode semi` in a fresh scratch project (this exercises the bare-`/autopilot` resume that Task 0b could not). Pass criteria for each: exit code 0 and `.autopilot/state.js` has `finishedAt`. Record the round counts and any duplicated work in `docs/antigravity.md`. If the `semi` resume redoes or double-commits a ticket, stop and report.
 
 - [ ] **Step 5: Final state**
 

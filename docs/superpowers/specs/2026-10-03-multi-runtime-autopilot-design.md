@@ -31,7 +31,8 @@ for Codex later. Claude Code behaviour must not regress.
   `--print-timeout`, `--disable-slash-commands`.
 - **F6 — verified by a live baseline run (2026-10-03).** Unmodified Autopilot already runs
   under `agy -p` (`/autopilot` expands; `disable-model-invocation` honoured) but wastes calls
-  hunting for `skillDir`, records no `runtime`, and stops when its turn ends. Details in
+  hunting for `skillDir`, records no `runtime`, and in `semi` stops when its turn ends. `invoke_subagent`
+  is synchronous in print mode; `full` finished in one round. A `flash` executor failed to write files. Details in
   `docs/antigravity.md`.
 - **F5 — reference implementations** (read for ideas, not copied): aif-handoff PR #184
   (binary discovery, NDJSON, `--conversation` continuity, process-tree kill) and
@@ -54,7 +55,7 @@ resume never re-detects.
 | Dispatch executor | `Agent`, background, whole wave in one message | `invoke_subagent` (`TypeName: self`, `Workspace: inherit` — shared checkout, because Autopilot commits by zone and `branch` worktrees would break that; revisit later), automatic wake-up |
 | Ask the user | chat text | chat text; `ask_question` allowed for forks in `interview`/`manual` |
 | Open dashboard | `preview_start` + `navigate` | `Start-Process <http url>`, print the URL |
-| Model tier | `обычная` → `sonnet` | `обычная` → `Model: flash`, `сильная` → `inherit` |
+| Model tier | `обычная` → `sonnet` | executors → `Model: inherit` (a `flash` executor reported DONE without writing files in the live trial); `flash` only for read-only reviewers |
 
 ### 2. Cross-platform bootstrap: `ap.py setup`
 New command, run from the **skill** directory copy of `ap.py` (not from `.autopilot/`):
@@ -73,8 +74,8 @@ Pure `find_agy()` (env `ANTIGRAVITY_BIN_PATH` → `PATH` → `%LOCALAPPDATA%\agy
 `run_round`/`main` that stream the output and kill the process tree on interrupt
 (`taskkill /T /F` on Windows, process group on POSIX). Two verified headless facts shape it
 (F6): without `--dangerously-skip-permissions` every `run_command` is auto-denied, so
-permissions are auto-approved for all modes (`--ask-permissions` opts out); and a finished
-turn ends the `-p` process while Autopilot ends its turn to wait for subagents, so the launcher
+permissions are auto-approved for all modes (`--ask-permissions` opts out); and a turn that
+ends early (`semi` right after announcing the plan) ends the `-p` process, so the launcher
 re-enters a bare `/autopilot` (the skill's own resume, `phases/0-resume.md`) until
 `state.js` reports `finishedAt`, with a round cap and a no-progress guard. Only `full` mode
 runs without a human.
@@ -91,7 +92,7 @@ parsing UI, Codex runtime content (stub only), MCP wiring.
 1. Which path `npx skills add -a antigravity` writes, and whether Antigravity discovers it.
 2. Whether Antigravity honours `disable-model-invocation` / `argument-hint`.
 3. ~~Whether `/autopilot` expands under `agy -p`~~ — verified yes. Still open: whether a bare
-   `/autopilot` resume picks up a ticket left `in-progress` by a cut-off turn (Task 0b).
+   `/autopilot` resume picks up a cut-off `semi` run without redoing work (Task 6).
 4. `invoke_subagent` concurrency limit (keep the existing "at most three in flight").
 5. `.agents/skills` is shared with Codex app (slash vs `$` rendering): document only.
 
