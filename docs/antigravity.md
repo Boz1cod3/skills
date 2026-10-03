@@ -94,3 +94,16 @@ Phases are shared with Claude Code. Host-specific behaviour (dispatch, questions
 - By default the launcher prints the raw `stream-json` events (noisy); `--output-format text` prints only the final response.
 - No duplicated work or double commits were observed.
 - Both logs contain `root agent idle; waiting up to 30m0s for 1 background task(s)`: in `agy -p` the CLI itself keeps the process alive while background subagents run (cap seen: 30 min). That is why `semi` did not need a second round here; a wave longer than that cap is the case the resume loop exists for.
+
+## Live resume (2026-10-03)
+
+Project with the skill installed by `npx skills add <local repo> --skill autopilot -a antigravity --copy -y`. `agy-run --mode full "A tiny Python CLI with two subcommands: hello prints hello, bye prints bye"`, then the whole launcher tree was killed (`taskkill /T /F`) 280 s in, 25 s after ticket 01 went `in-progress`. At that point the repo had only the plan commit.
+
+| Step | Result |
+|---|---|
+| `agy-run --resume --mode full` | exit 0, **1 round**, 759 s |
+| Preflight | took the resume path (`phases/0-resume.md`); no "another window" question (the launcher stops the server before a resume round; whether the server had survived the kill was not checked) |
+| Ticket 01 | `done`, `retries 0`, one commit `T01`, no duplicate |
+| Commits | plan → T01 → final |
+| Orphans after the run | no `agy.exe` left running |
+
