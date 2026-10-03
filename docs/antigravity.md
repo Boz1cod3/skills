@@ -86,3 +86,4 @@ Phases are shared with Claude Code. Host-specific behaviour (dispatch, questions
 - `semi` also finished in one round on this task, so the bare-`/autopilot` resume path of the launcher is **still unexercised live**; it is covered by unit tests only.
 - The launcher prints the raw `stream-json` events to stdout (noisy); the final `result` line carries the summary.
 - No duplicated work or double commits were observed.
+- Both logs contain `root agent idle; waiting up to 30m0s for 1 background task(s)`: in `agy -p` the CLI itself keeps the process alive while background subagents run (cap seen: 30 min). That is why `semi` did not need a second round here; a wave longer than that cap is the case the resume loop exists for.
