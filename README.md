@@ -80,6 +80,10 @@ npx skills add nick-vels/skills --skill autopilot -a claude-code -g -y
 
 ---
 
+### Antigravity (этот форк)
+
+Форк [Boz1cod3/skills](https://github.com/Boz1cod3/skills) работает и в Google Antigravity и в CLI `agy` — см. [docs/antigravity.md](docs/antigravity.md).
+
 ## Как пользоваться
 
 Откройте агента в папке будущего проекта и напишите:

@@ -6,6 +6,10 @@
 npx skills update autopilot -g
 ```
 
+## Unreleased
+
+- Antigravity runtime: `phases/runtime.md` contract, `ap.py setup`, `init --runtime`, `tools/agy-run.py`.
+
 ## 2.0.0 — 2026-10-01
 
 Первая версия с номером. Всё, что было до неё, считается 1.x. Первый час после выхода она называлась 1.1.0 — это та же версия.

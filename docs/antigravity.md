@@ -38,3 +38,40 @@ Reference adapter (aif-handoff PR #184, `adapters/antigravity/cli.ts`, read at `
 | Bare `/autopilot` resume of a cut-off run | **not exercised** (never needed in `full`); the earlier `semi` run is the case that needs it. Verified in the Task 6 `semi` smoke. |
 
 Consequences: the launcher's resume loop is for modes that end their turn early (`semi`), not for waiting on subagents; executors map to `Model: "inherit"`; `flash` is kept for read-only reviewers only.
+
+## Install
+
+This fork lives at <https://github.com/Boz1cod3/skills> (upstream: `nick-vels/skills`). The agent id is `antigravity`.
+
+```powershell
+npx skills add Boz1cod3/skills --skill autopilot -a antigravity --copy -y      # project: .agents/skills/autopilot
+npx skills add Boz1cod3/skills --skill autopilot -a antigravity -g --copy -y   # global:  ~/.agents/skills/autopilot
+```
+
+`--copy` avoids symlinks, which are unreliable on Windows. The global path comes from the `skills` CLI and was not exercised in a live IDE session.
+
+## Run
+
+Interactive (Antigravity IDE or `agy`): type `/autopilot [full|semi|interview|manual] [strict|deep] <what to build>`.
+
+Headless:
+
+```powershell
+python <skillDir>/tools/agy-run.py --mode full --project D:\work\my-app "Telegram bot for repair requests"
+```
+
+Headless cannot answer permission prompts, so tool permissions are auto-approved (`--ask-permissions` turns that off and every command is then denied). A finished turn ends the `agy -p` process, so the launcher re-enters a bare `/autopilot` (the skill's own resume) until `finishedAt`; `--max-rounds` (default 12) caps it and a round with no change in `updatedAt` stops it. Only `full` runs without a human; the other modes stop to ask questions.
+
+Exit codes: 0 finished, 1 agent error, 2 round cap, 3 no progress, 127 `agy` not found, 130 interrupted.
+
+## How it adapts
+
+Phases are shared with Claude Code. Host-specific behaviour (dispatch, questions, dashboard, model tier, bootstrap) lives in `phases/runtime.md`; the agent picks the `antigravity` section because it has the `invoke_subagent` tool and records it as `runtime` in `.autopilot/state.js`. Bootstrap on Antigravity is `ap.py setup` (no bash, no symlinks) instead of the bash block.
+
+## Known limits
+
+- Executors share one checkout (`Workspace: "inherit"`); `branch` worktrees are not used because Autopilot commits by zone.
+- Executors run on `Model: "inherit"`: a `flash` executor reported DONE without writing files in one trial. `flash` is used for read-only reviewers only.
+- No side pane: the dashboard opens in the browser via `Start-Process`.
+- `.agents/skills` is shared with the Codex app (slash vs `$` commands); installing both into one project is not handled.
+- Codex runtime is a stub.
