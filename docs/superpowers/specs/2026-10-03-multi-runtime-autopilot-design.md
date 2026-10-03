@@ -29,6 +29,10 @@ for Codex later. Claude Code behaviour must not regress.
   `--effort low|medium|high|max`, `--conversation <id>`, `-c/--continue`,
   `--dangerously-skip-permissions`, `--add-dir`, `--agent`, `--sandbox`,
   `--print-timeout`, `--disable-slash-commands`.
+- **F6 — verified by a live baseline run (2026-10-03).** Unmodified Autopilot already runs
+  under `agy -p` (`/autopilot` expands; `disable-model-invocation` honoured) but wastes calls
+  hunting for `skillDir`, records no `runtime`, and stops when its turn ends. Details in
+  `docs/antigravity.md`.
 - **F5 — reference implementations** (read for ideas, not copied): aif-handoff PR #184
   (binary discovery, NDJSON, `--conversation` continuity, process-tree kill) and
   ai-factory PR #166 (target registry, receipts, `.agents/skills|rules|agents`,
@@ -66,9 +70,14 @@ Claude keeps its existing bash block unchanged (no regression risk); Antigravity
 ### 4. Headless runner: `tools/agy-run.py`
 Pure `find_agy()` (env `ANTIGRAVITY_BIN_PATH` → `PATH` → `%LOCALAPPDATA%\agy\bin\agy.exe`
 → `~/.local/bin/agy`) and `build_args(...)` (mode/depth/brief → argv, F4 flags), plus a thin
-`main()` that runs the process with inherited stdio and kills the process tree on interrupt
-(`taskkill /T /F` on Windows, process group on POSIX). `full` mode adds
-`--dangerously-skip-permissions`; other modes do not.
+`run_round`/`main` that stream the output and kill the process tree on interrupt
+(`taskkill /T /F` on Windows, process group on POSIX). Two verified headless facts shape it
+(F6): without `--dangerously-skip-permissions` every `run_command` is auto-denied, so
+permissions are auto-approved for all modes (`--ask-permissions` opts out); and a finished
+turn ends the `-p` process while Autopilot ends its turn to wait for subagents, so the launcher
+re-enters a bare `/autopilot` (the skill's own resume, `phases/0-resume.md`) until
+`state.js` reports `finishedAt`, with a round cap and a no-progress guard. Only `full` mode
+runs without a human.
 
 ### 5. Distribution and docs
 No custom installer in v1. Docs state the install command per agent and the verified
@@ -81,7 +90,8 @@ parsing UI, Codex runtime content (stub only), MCP wiring.
 ## Risks / unverified (resolved by Task 0)
 1. Which path `npx skills add -a antigravity` writes, and whether Antigravity discovers it.
 2. Whether Antigravity honours `disable-model-invocation` / `argument-hint`.
-3. Whether `/autopilot` expands under `agy -p`.
+3. ~~Whether `/autopilot` expands under `agy -p`~~ — verified yes. Still open: whether a bare
+   `/autopilot` resume picks up a ticket left `in-progress` by a cut-off turn (Task 0b).
 4. `invoke_subagent` concurrency limit (keep the existing "at most three in flight").
 5. `.agents/skills` is shared with Codex app (slash vs `$` rendering): document only.
 
