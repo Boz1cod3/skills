@@ -791,6 +791,8 @@ def cmd_set(state, pos):
         k, _, v = p.partition("=")
         if not _ or k in ("stages", "tickets", "requirements"):
             die("set key=value (скалярные поля верхнего уровня)")
+        if k == "runtime" and v not in RUNTIMES:
+            die("runtime: %s — допустимо: %s" % (v, ", ".join(RUNTIMES)))
         state[k] = None if v in ("", "null") else v
 
 

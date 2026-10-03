@@ -10,7 +10,8 @@
 A finished turn is a finished `agy -p` process. agy keeps the process alive while background
 subagents run (a ~30 min cap was observed), but a longer wave or a mode that ends its turn early
 ends it before the run is done. The launcher then re-enters a bare `/autopilot` (the skill's own
-resume, driven by .autopilot/state.js) until the run reports a new finishedAt. Before every resume
+resume, driven by .autopilot/state.js) until the run reports a new finishedAt. Every resume round
+is a new agy conversation: the run's memory is state.js and the run directory, not the chat. Before every resume
 round it stops the run's dashboard server, otherwise preflight would take the live server for
 "the run is going on in another window" and stop to ask.
 
@@ -45,8 +46,11 @@ def find_agy(env=None, which=shutil.which, exists=os.path.isfile, home=None):
         return explicit
     if explicit:
         print("ANTIGRAVITY_BIN_PATH=%s does not exist — looking elsewhere" % explicit, file=sys.stderr)
-    found = which("agy")
+    found = which("agy.exe") or which("agy")
     if found:
+        if found.lower().endswith((".cmd", ".bat")):
+            print("warning: %s is a shell shim; the brief goes through cmd.exe parsing — "
+                  "set ANTIGRAVITY_BIN_PATH to agy.exe" % found, file=sys.stderr)
         return found
     candidates = []
     if env.get("LOCALAPPDATA"):
@@ -222,7 +226,14 @@ def main(argv=None, run=run_round, find=find_agy, stop=stop_server):
         return 130
 
 
+def _interrupt(signum, frame):
+    raise KeyboardInterrupt
+
+
 if __name__ == "__main__":
+    for name in ("SIGTERM", "SIGHUP"):
+        if hasattr(signal, name):
+            signal.signal(getattr(signal, name), _interrupt)
     for stream in (sys.stdout, sys.stderr):
         try:
             stream.reconfigure(encoding="utf-8", errors="replace")

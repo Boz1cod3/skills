@@ -2,7 +2,11 @@ import importlib.util
 import json
 import os
 import shutil
+import signal
+import subprocess
+import sys
 import tempfile
+import time
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -38,6 +42,11 @@ class FindAgy(unittest.TestCase):
         want = os.path.join("H", ".local", "bin", "agy")
         got = self.m.find_agy(env={}, which=lambda n: None, exists=lambda p: p == want, home="H")
         self.assertEqual(got, want)
+
+    def test_real_exe_is_preferred_over_a_shell_shim(self):
+        got = self.m.find_agy(env={}, which=lambda n: {"agy.exe": "E", "agy": "S.cmd"}.get(n),
+                              exists=lambda p: False)
+        self.assertEqual(got, "E")
 
     def test_nothing_found(self):
         self.assertIsNone(self.m.find_agy(env={}, which=lambda n: None, exists=lambda p: False, home="H"))
@@ -228,6 +237,62 @@ class Main(unittest.TestCase):
     def test_agy_not_found(self):
         self.assertEqual(self.m.main(["hello", "--project", self.root], run=self.fake_run,
                                      find=lambda: None, stop=self.stops.append), 127)
+
+
+FAKE_AGY = """import json, os, sys, time
+sys.stdout.reconfigure(encoding="utf-8")
+pidfile = os.environ.get("FAKE_PIDFILE")
+if pidfile:
+    open(pidfile, "w").write(str(os.getpid()))
+print(json.dumps({"event": "init", "init": {"conversation_id": "c"}}), flush=True)
+print("noise ✓ ↑", flush=True)
+if os.environ.get("FAKE_SLEEP"):
+    time.sleep(float(os.environ["FAKE_SLEEP"]))
+print(json.dumps({"event": "result", "result": {"status": "SUCCESS", "response": "привет"}}), flush=True)
+"""
+
+
+class RealProcess(unittest.TestCase):
+    """run_round / signals against a real child process (a fake agy)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.m = load()
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp(prefix="agy-proc-")
+        self.fake = os.path.join(self.root, "fake_agy.py")
+        with open(self.fake, "w", encoding="utf-8") as f:
+            f.write(FAKE_AGY)
+
+    def tearDown(self):
+        shutil.rmtree(self.root, ignore_errors=True)
+
+    def test_run_round_reads_the_result_from_a_real_child(self):
+        code, result = self.m.run_round(sys.executable, [self.fake], self.root, show="none")
+        self.assertEqual(code, 0)
+        self.assertEqual(result, {"status": "SUCCESS", "response": "привет"})
+
+    @unittest.skipIf(os.name == "nt", "POSIX signal handling")
+    def test_sigterm_to_the_launcher_kills_agy(self):
+        agy = os.path.join(self.root, "agy")
+        with open(agy, "w", encoding="utf-8") as f:
+            f.write("#!%s\n%s" % (sys.executable, FAKE_AGY))
+        os.chmod(agy, 0o755)
+        pidfile = os.path.join(self.root, "pid")
+        env = dict(os.environ, ANTIGRAVITY_BIN_PATH=agy, FAKE_PIDFILE=pidfile, FAKE_SLEEP="60")
+        launcher = subprocess.Popen([sys.executable, PATH, "hello", "--project", self.root],
+                                    env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        for _ in range(100):
+            if os.path.exists(pidfile) and open(pidfile).read():
+                break
+            time.sleep(0.1)
+        child = int(open(pidfile).read())
+        launcher.send_signal(signal.SIGTERM)
+        self.assertEqual(launcher.wait(timeout=10), 130)
+        time.sleep(0.5)
+        with self.assertRaises(OSError):
+            os.kill(child, 0)
 
 
 if __name__ == "__main__":

@@ -308,6 +308,15 @@ class Run(unittest.TestCase):
         self.assertEqual(code, 0, out)
         self.assertEqual(self.state()["runtime"], "antigravity")
 
+    def test_set_runtime_is_validated(self):
+        self.init()
+        code, out = self.ap("set", "runtime=bogus")
+        self.assertNotEqual(code, 0)
+        self.assertEqual(self.state()["runtime"], "claude")
+        code, out = self.ap("set", "runtime=antigravity")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.state()["runtime"], "antigravity")
+
     def test_init_rejects_an_unknown_runtime(self):
         code, out = self.ap("init", "--slug", "x", "--runtime", "bogus", "--skill-dir", SKILL)
         self.assertNotEqual(code, 0)
