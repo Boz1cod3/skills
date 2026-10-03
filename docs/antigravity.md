@@ -139,4 +139,4 @@ Project with the skill installed by `npx skills add <local repo> --skill autopil
 | Without a project install, on the owner's machine | `agy` still found `D:\ANTIGRAVITY\Autopilot\skills\autopilot\SKILL.md` (the repo); the mechanism was not identified — a machine-local quirk, do not rely on it |
 | Subagent survives a tree kill | no: a subagent running `sleep 90; write file` was killed with `agy`, the file never appeared, no leftover processes |
 | Unit tests on Linux | 69/69 OK under WSL Ubuntu (Python 3.12), including SIGTERM → launcher exits 130 and the `agy` child is killed. `agy` itself was not run on Linux/macOS. |
-| `/autopilot` in the interactive Antigravity IDE chat | not checked by the agent (needs a human in the IDE) |
+| `/autopilot` in the interactive Antigravity IDE chat | works: `semi`, "console tic-tac-toe, two players and a simple bot", 19 min; all 8 stages done, 3 tickets each first try with its own commit, 9/9 requirements, 31 tests; `runtime=antigravity`; the dashboard opened in the browser by itself. The agent also wrote a one-line `CLAUDE.md` (`@AGENTS.md`), unnecessary on Antigravity but harmless. |
