@@ -130,5 +130,105 @@ class ParseResult(unittest.TestCase):
         self.assertIsNone(self.m.parse_result(['{"event":"init"}\n', "x\n"]))
 
 
+class Main(unittest.TestCase):
+    """main(): round sequencing, resume protocol, stale finishedAt, guards."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.m = load()
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp(prefix="agy-main-")
+        self.calls, self.stops, self.script = [], [], []
+
+    def tearDown(self):
+        shutil.rmtree(self.root, ignore_errors=True)
+
+    def put(self, **state):
+        os.makedirs(os.path.join(self.root, ".autopilot"), exist_ok=True)
+        with open(os.path.join(self.root, ".autopilot", "state.js"), "w", encoding="utf-8") as f:
+            f.write("window.AUTOPILOT = " + json.dumps(state) + ";\n")
+
+    def fake_run(self, exe, args, cwd, show="stream-json"):
+        self.calls.append(args)
+        step = self.script.pop(0) if self.script else {}
+        if "state" in step:
+            self.put(**step["state"])
+        return step.get("code", 0), step.get("result", {"status": "SUCCESS"})
+
+    def main(self, *argv):
+        return self.m.main(list(argv) + ["--project", self.root], run=self.fake_run,
+                           find=lambda: "agy", stop=self.stops.append)
+
+    def prompt(self, i):
+        return self.calls[i][self.calls[i].index("-p") + 1]
+
+    def test_new_run_finishing_in_round_one(self):
+        self.script = [{"state": {"finishedAt": "f1", "updatedAt": "u1"}}]
+        self.assertEqual(self.main("--mode", "full", "hello"), 0)
+        self.assertEqual(self.prompt(0), "/autopilot full hello")
+        self.assertEqual(self.stops, [])
+
+    def test_agy_is_always_asked_for_stream_json(self):
+        self.script = [{"state": {"finishedAt": "f1", "updatedAt": "u1"}}]
+        self.main("--output-format", "text", "hello")
+        self.assertEqual(self.calls[0][self.calls[0].index("--output-format") + 1], "stream-json")
+
+    def test_a_stale_finished_run_is_not_success(self):
+        self.put(finishedAt="old", updatedAt="u0")
+        self.script = [{}, {}]                              # the agent never touches state
+        self.assertEqual(self.main("hello"), 3)
+
+    def test_resume_round_stops_the_server_first_and_is_bare(self):
+        self.script = [{"state": {"finishedAt": None, "updatedAt": "u1"}},
+                       {"state": {"finishedAt": "f2", "updatedAt": "u2"}}]
+        self.assertEqual(self.main("hello"), 0)
+        self.assertEqual(self.prompt(1), "/autopilot")
+        self.assertEqual(self.stops, [os.path.abspath(self.root)])
+
+    def test_unfinished_run_without_resume_is_refused(self):
+        self.put(finishedAt=None, updatedAt="u0")
+        self.assertEqual(self.main("hello"), 4)
+        self.assertEqual(self.calls, [])
+
+    def test_resume_only_starts_bare_after_stopping_the_server(self):
+        self.put(finishedAt=None, updatedAt="u0")
+        self.script = [{"state": {"finishedAt": "f1", "updatedAt": "u1"}}]
+        self.assertEqual(self.main("--resume"), 0)
+        self.assertEqual(self.prompt(0), "/autopilot")
+        self.assertEqual(len(self.stops), 1)
+
+    def test_resume_without_a_run_is_refused(self):
+        self.assertEqual(self.main("--resume"), 4)
+        self.assertEqual(self.calls, [])
+
+    def test_no_brief_and_no_resume_is_refused(self):
+        self.assertEqual(self.main(), 4)
+
+    def test_agent_error(self):
+        self.script = [{"code": 0, "result": None}]
+        self.assertEqual(self.main("hello"), 1)
+
+    def test_conversation_only_in_round_one(self):
+        self.script = [{"state": {"finishedAt": None, "updatedAt": "u1"}},
+                       {"state": {"finishedAt": "f", "updatedAt": "u2"}}]
+        self.main("--conversation", "c1", "hello")
+        self.assertIn("--conversation", self.calls[0])
+        self.assertNotIn("--conversation", self.calls[1])
+
+    def test_round_cap(self):
+        self.script = [{"state": {"finishedAt": None, "updatedAt": "u%d" % i}} for i in range(3)]
+        self.assertEqual(self.main("--max-rounds", "2", "hello"), 2)
+        self.assertEqual(len(self.calls), 2)
+
+    def test_max_rounds_must_be_positive(self):
+        with self.assertRaises(SystemExit):
+            self.main("--max-rounds", "0", "hello")
+
+    def test_agy_not_found(self):
+        self.assertEqual(self.m.main(["hello", "--project", self.root], run=self.fake_run,
+                                     find=lambda: None, stop=self.stops.append), 127)
+
+
 if __name__ == "__main__":
     unittest.main()

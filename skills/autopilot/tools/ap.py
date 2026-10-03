@@ -870,13 +870,19 @@ def cmd_setup():
     template = os.path.join(skill, "phases", "dashboard-template.html")
     if not os.path.isfile(template):
         die("setup запускается из каталога навыка: python <skillDir>/tools/ap.py setup")
-    top = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True)
-    root = top.stdout.strip() if top.returncode == 0 and top.stdout.strip() else os.getcwd()
+    try:
+        top = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+        root = top.stdout.strip() if top.returncode == 0 and top.stdout.strip() else os.getcwd()
+    except OSError:                                   # git is not installed
+        root = os.getcwd()
     dst = os.path.join(os.path.realpath(root), ".autopilot")
-    os.makedirs(dst, exist_ok=True)
-    shutil.copyfile(template, os.path.join(dst, "dashboard.html"))
-    shutil.copyfile(template, os.path.join(dst, "index.html"))
-    shutil.copyfile(os.path.abspath(__file__), os.path.join(dst, "ap.py"))
+    try:
+        os.makedirs(dst, exist_ok=True)
+        shutil.copyfile(template, os.path.join(dst, "dashboard.html"))
+        shutil.copyfile(template, os.path.join(dst, "index.html"))
+        shutil.copyfile(os.path.abspath(__file__), os.path.join(dst, "ap.py"))
+    except OSError as e:
+        die("не могу записать %s: %s" % (dst, e))
     print("skillDir = %s" % skill.replace("\\", "/"))
     print(".autopilot = %s" % dst)
 

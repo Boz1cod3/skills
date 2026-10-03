@@ -349,6 +349,13 @@ class Setup(unittest.TestCase):
         self.assertEqual(self.run_setup().returncode, 0)
         self.assertEqual(self.run_setup().returncode, 0)
 
+    def test_setup_without_git_installed_falls_back_to_cwd(self):
+        env = dict(os.environ, PATH=os.path.dirname(sys.executable))
+        r = subprocess.run([sys.executable, AP, "setup"], capture_output=True, text=True,
+                           cwd=self.root, env=env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertTrue(os.path.isfile(os.path.join(self.root, ".autopilot", "ap.py")))
+
     def test_setup_refuses_to_run_from_the_project_copy(self):
         self.assertEqual(self.run_setup().returncode, 0)
         copy = os.path.join(self.root, ".autopilot", "ap.py")
