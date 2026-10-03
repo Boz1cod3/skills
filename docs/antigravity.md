@@ -12,7 +12,7 @@
 | `/autopilot` expands under `agy -p` | yes — `init.expanded_commands = [{"name":"autopilot","type":"skill"}]` |
 | Prompt delivery | `-p "<prompt>"` and stdin (no `-p`) both work |
 | Headless permissions | without `--dangerously-skip-permissions` every `run_command` is auto-denied and the process ends with empty output |
-| `invoke_subagent` in `-p` | the CLI keeps the process alive while background subagents run (`root agent idle; waiting up to 30m0s for 1 background task(s)`; ~30 min cap observed) and the turn continues when they report. A wave longer than the cap, or a turn that ends early, ends the process. Whether running subagents die with it is unverified. |
+| `invoke_subagent` in `-p` | the CLI keeps the process alive while background subagents run (`root agent idle; waiting up to 30m0s for 1 background task(s)`; ~30 min cap observed) and the turn continues when they report. A wave longer than the cap, or a turn that ends early, ends the process. A tree kill (`taskkill /T /F`) also kills running subagents and their commands (verified); what happens to them at a natural exit on the cap is unverified. |
 | Stream events (`stream-json`) | `init` (`conversation_id`, `init.tools`, `init.permission_mode`, `init.expanded_commands`), `step_update`, `result` (`status`, `response`, `conversation_id`, `denied_actions`) |
 | Tools seen in `init.tools` | `invoke_subagent`, `manage_subagents`, `ask_question`, `wait`, `open_browser_url`, `run_command`, no `Agent` |
 | `python3` on the owner's machine | Microsoft Store stub (does not run); `python` 3.11 and `py -3` 3.12 work |
@@ -107,3 +107,12 @@ Project with the skill installed by `npx skills add <local repo> --skill autopil
 | Commits | plan → T01 → final |
 | Orphans after the run | no `agy.exe` left running |
 
+## Further checks (2026-10-03)
+
+| Question | Result |
+|---|---|
+| Which copy runs when the skill is installed in the project | the project copy: the agent read `<project>/.agents/skills/autopilot/phases/0-modes.md` and `0-preflight.md` (SKILL.md itself is injected, not read) |
+| Without a project install, on the owner's machine | `agy` still found `D:\ANTIGRAVITY\Autopilot\skills\autopilot\SKILL.md` (the repo); the mechanism was not identified — a machine-local quirk, do not rely on it |
+| Subagent survives a tree kill | no: a subagent running `sleep 90; write file` was killed with `agy`, the file never appeared, no leftover processes |
+| Unit tests on Linux | 69/69 OK under WSL Ubuntu (Python 3.12), including SIGTERM → launcher exits 130 and the `agy` child is killed. `agy` itself was not run on Linux/macOS. |
+| `/autopilot` in the interactive Antigravity IDE chat | not checked by the agent (needs a human in the IDE) |
