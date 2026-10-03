@@ -21,7 +21,7 @@ This file is the orchestrator: order, gates, the rules that never lose. Each pha
 
 | Phase | Read | Produces |
 |---|---|---|
-| 0 Preflight | `phases/0-modes.md`, `phases/0-preflight.md`, then `0-memory.md`, `0-instruments.md` | mode announced, repo configured, dashboard open |
+| 0 Preflight | `phases/0-modes.md`, `phases/0-preflight.md`, then `0-memory.md`, `phases/runtime.md`, `0-instruments.md` | mode announced, repo configured, dashboard open |
 | 1 Manifest | `phases/1-manifest.md` | `<дата>-brief.md`, `manifest.md` |
 | 2 Briefing | `phases/2-briefing.md` (+ `2-adversarial.md` when it runs) | answers recorded into the manifest |
 | 3 Spec | `phases/3-spec.md` | `notes.md` in existing code, `spec.md`, the boundaries in `interfaces.md` |

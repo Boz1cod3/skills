@@ -376,6 +376,20 @@ class Pure(unittest.TestCase):
         self.assertEqual(self.m._version('---\nname: x\nmetadata:\n  version: "2.0.1"\n---\nversion: 9'), (2, 0, 1))
         self.assertIsNone(self.m._version("---\nname: x\n---\nversion: 3\n"))
 
+    def test_runtime_contract_has_every_section_and_point(self):
+        text = read(os.path.join(SKILL, "phases", "runtime.md"))
+        for section in ("## claude", "## antigravity", "## codex"):
+            self.assertIn(section, text)
+        for point in ("**Dispatch:**", "**Ask:**", "**Dashboard:**", "**Model tier:**"):
+            self.assertGreaterEqual(text.count(point), 3, point)
+
+    def test_phases_point_at_the_runtime_contract(self):
+        for name in ("0-instruments", "5-subagents", "6-review", "8-final"):
+            self.assertIn("phases/runtime.md", read(os.path.join(SKILL, "phases", name + ".md")), name)
+
+    def test_skill_table_lists_the_runtime_contract(self):
+        self.assertIn("phases/runtime.md", read(os.path.join(SKILL, "SKILL.md")))
+
     def test_skill_declares_a_version(self):
         text = read(os.path.join(SKILL, "SKILL.md"))
         self.assertIsNotNone(self.m._version(text))

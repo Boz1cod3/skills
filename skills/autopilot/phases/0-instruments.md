@@ -2,6 +2,8 @@
 
 The user's live view of the run: `.autopilot/dashboard.html`, a copy of the template, showing `.autopilot/state.js`. **You never edit either by hand.** Every event of the run is one call to `.autopilot/ap.py`, which stamps the time, recounts the requirements from `manifest.md`, closes the stages the run has passed, writes a snapshot of the state into the page and keeps a static server alive for it. This file is read once, in Phase 0; the command table in §4 is what you use for the rest of the run.
 
+> **Host:** this phase describes the Claude Code way. On any other host read the **Bootstrap** and **Dashboard** bullets of your section in `phases/runtime.md` instead of §1 and §3.
+
 ## 1. Copy the template and the tool
 
 Runs on every flight — new repo, new feature, resume alike. Every line is idempotent and the copy picks up whatever the installed skill has learned since.

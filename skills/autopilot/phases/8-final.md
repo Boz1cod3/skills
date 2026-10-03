@@ -1,5 +1,7 @@
 # Phase 8 — Acceptance
 
+> Subagent dispatch and model names depend on the host — `phases/runtime.md`.
+
 `ap.py stage final`. Three subagents, no contact between them, each answering a different question. The blind checker and the ADR agent go out **in one message**; the memory agent goes out when the blind checker has returned, because it needs the commands the checker proved:
 
 | Agent | Question | Receives | Never receives |

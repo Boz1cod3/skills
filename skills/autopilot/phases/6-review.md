@@ -1,5 +1,7 @@
 # Phase 6 — Review
 
+> Subagent dispatch and model names depend on the host — `phases/runtime.md`.
+
 Two moments, both done by someone who did not write the code:
 
 - **Point review during the build** — for tickets whose file says `Ревью: да` (the foundation and the risky ones, `phases/4-plan.md`), and for a ticket whose contract reports one of its own requirements as not done — before the commit. At T0 there is none: the whole-branch review is that ticket's review.
