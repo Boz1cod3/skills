@@ -299,6 +299,64 @@ class Run(unittest.TestCase):
         self.assertNotIn("finishedAt", self.stage("final"))
 
 
+    def test_init_records_runtime_default_claude(self):
+        self.init()
+        self.assertEqual(self.state()["runtime"], "claude")
+
+    def test_init_records_antigravity_runtime(self):
+        code, out = self.ap("init", "--slug", "x", "--runtime", "antigravity", "--skill-dir", SKILL)
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.state()["runtime"], "antigravity")
+
+    def test_init_rejects_an_unknown_runtime(self):
+        code, out = self.ap("init", "--slug", "x", "--runtime", "bogus", "--skill-dir", SKILL)
+        self.assertNotEqual(code, 0)
+        self.assertFalse(os.path.exists(os.path.join(self.a, "state.js")))
+
+
+class Setup(unittest.TestCase):
+    """`ap.py setup`: bootstrap from the skill directory, no symlinks, no bash."""
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp(prefix="ap-setup-")
+
+    def tearDown(self):
+        shutil.rmtree(self.root, ignore_errors=True)
+
+    def run_setup(self, script=AP, cwd=None):
+        return subprocess.run([sys.executable, script, "setup"], capture_output=True,
+                              text=True, cwd=cwd or self.root)
+
+    def test_setup_in_a_git_repo_creates_the_instruments(self):
+        subprocess.run(["git", "-C", self.root, "init", "-q"], check=True)
+        sub = os.path.join(self.root, "src")
+        os.makedirs(sub)
+        r = self.run_setup(cwd=sub)                      # run from a subfolder: root is the toplevel
+        self.assertEqual(r.returncode, 0, r.stderr)
+        a = os.path.join(os.path.realpath(self.root), ".autopilot")
+        for name in ("dashboard.html", "index.html", "ap.py"):
+            self.assertTrue(os.path.isfile(os.path.join(a, name)), name)
+        self.assertEqual(read(os.path.join(a, "index.html")), read(os.path.join(a, "dashboard.html")))
+        self.assertFalse(os.path.islink(os.path.join(a, "index.html")))
+        self.assertIn("skillDir = " + SKILL.replace("\\", "/"), r.stdout)
+
+    def test_setup_without_git_uses_the_current_folder(self):
+        r = self.run_setup()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertTrue(os.path.isfile(os.path.join(self.root, ".autopilot", "ap.py")))
+
+    def test_setup_is_idempotent(self):
+        self.assertEqual(self.run_setup().returncode, 0)
+        self.assertEqual(self.run_setup().returncode, 0)
+
+    def test_setup_refuses_to_run_from_the_project_copy(self):
+        self.assertEqual(self.run_setup().returncode, 0)
+        copy = os.path.join(self.root, ".autopilot", "ap.py")
+        r = self.run_setup(script=copy)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("setup", r.stderr + r.stdout)
+
+
 class Pure(unittest.TestCase):
     """Функции без процесса: опознание своего сервера и версия навыка."""
 

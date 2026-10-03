@@ -5,6 +5,8 @@
 
     python3 .autopilot/ap.py init --slug S --title "…" --mode semi --depth normal \\
                                   --memory-file AGENTS.md --memory-owner autopilot --skill-dir /abs
+    python3 .autopilot/ap.py setup        # из каталога навыка: python <skillDir>/tools/ap.py setup
+    # init принимает также --runtime claude|antigravity|codex (по умолчанию claude)
     python3 .autopilot/ap.py stage spec                 # открыть этап (прошлые закроются сами)
     python3 .autopilot/ap.py stage briefing skip --note "полный автомат — самобрифинг"
     python3 .autopilot/ap.py set tier=T2 baseCommit=a1b2c3d
@@ -39,6 +41,7 @@ import glob
 import json
 import os
 import re
+import shutil
 import socket
 import subprocess
 import sys
@@ -64,6 +67,7 @@ WIN = os.name == "nt"
 REPO = "nick-vels/skills"
 REMOTE_SKILL = "https://raw.githubusercontent.com/%s/main/skills/autopilot/SKILL.md" % REPO
 STOP_DELAY = 12
+RUNTIMES = ("claude", "antigravity", "codex")
 ORDER = ["preflight", "manifest", "briefing", "spec", "plan", "build", "review", "final"]
 # Этап, чей результат лежит на диске, пройден — даже если его забыли отметить.
 ARTIFACT = {"manifest": "manifest.md", "spec": "spec.md", "plan": "tickets/*.md"}
@@ -118,6 +122,7 @@ def fresh_state(a):
         "memoryFile": a.get("memory-file") or "AGENTS.md",
         "memoryOwner": a.get("memory-owner") or "autopilot",
         "skillDir": a.get("skill-dir"), "baseCommit": None,
+        "runtime": a.get("runtime") or "claude",
         "startedAt": t, "updatedAt": t, "finishedAt": None,
         "stages": [{"id": "preflight", "status": "active", "startedAt": t}]
                   + [{"id": s, "status": "pending"} for s in ORDER[1:]],
@@ -675,6 +680,9 @@ def tests_pair(v):
 def cmd_init(opt):
     if not opt.get("slug"):
         die("init требует --slug")
+    rt = opt.get("runtime")
+    if rt is not None and rt not in RUNTIMES:
+        die("--runtime: %s — допустимо: %s" % (rt, ", ".join(RUNTIMES)))
     old = read_state()
     notes = []
     if old and not old.get("finishedAt") and not opt.get("force"):
@@ -856,10 +864,30 @@ def cmd_reopen(state):
     register_row(state, "в работе", None)
 
 
+def cmd_setup():
+    """Bootstrap .autopilot/ from the skill directory (no bash, no symlinks)."""
+    skill = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    template = os.path.join(skill, "phases", "dashboard-template.html")
+    if not os.path.isfile(template):
+        die("setup запускается из каталога навыка: python <skillDir>/tools/ap.py setup")
+    top = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+    root = top.stdout.strip() if top.returncode == 0 and top.stdout.strip() else os.getcwd()
+    dst = os.path.join(os.path.realpath(root), ".autopilot")
+    os.makedirs(dst, exist_ok=True)
+    shutil.copyfile(template, os.path.join(dst, "dashboard.html"))
+    shutil.copyfile(template, os.path.join(dst, "index.html"))
+    shutil.copyfile(os.path.abspath(__file__), os.path.join(dst, "ap.py"))
+    print("skillDir = %s" % skill.replace("\\", "/"))
+    print(".autopilot = %s" % dst)
+
+
 def main():
     argv = sys.argv[1:]
     if "--stop-now" in argv:
         stop_now()
+        return
+    if argv and argv[0] == "setup":
+        cmd_setup()
         return
     pos, opt, multi = parse_args(argv)
     cmd = pos[0] if pos else ""
