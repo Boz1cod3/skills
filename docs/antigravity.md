@@ -1,5 +1,29 @@
 # Autopilot on Antigravity
 
+## Quick start
+
+1. Create the project folder and make it a git repo (Autopilot commits ticket by ticket):
+   ```powershell
+   mkdir D:\work\my-app; cd D:\work\my-app; git init
+   ```
+2. Install the skill into the project from this fork:
+   ```powershell
+   npx skills add Boz1cod3/skills --skill autopilot -a antigravity --copy -y
+   ```
+3. Open the folder in the Antigravity IDE and type in the chat:
+   ```
+   /autopilot semi <what to build>
+   ```
+   Modes: `full` (no questions), `semi` (stops once after the plan), `interview`, `manual`.
+4. Or run it without a human from a terminal:
+   ```powershell
+   python .agents\skills\autopilot\tools\agy-run.py --mode full --project . "<what to build>"
+   python .agents\skills\autopilot\tools\agy-run.py --resume --project .      # continue a cut-off run
+   ```
+5. Update the skill later: repeat step 2.
+
+Details, global install and limits: [Install](#install), [Run](#run), [Known limits](#known-limits).
+
 ## Verified facts (2026-10-03, Windows 11, pwsh 7.6, `agy` from `%LOCALAPPDATA%\agy\bin`)
 
 | Question | Result |

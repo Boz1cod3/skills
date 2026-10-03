@@ -84,6 +84,13 @@ npx skills add nick-vels/skills --skill autopilot -a claude-code -g -y
 
 Форк [Boz1cod3/skills](https://github.com/Boz1cod3/skills) работает и в Google Antigravity и в CLI `agy` — см. [docs/antigravity.md](docs/antigravity.md).
 
+```powershell
+cd D:\work\my-app; git init
+npx skills add Boz1cod3/skills --skill autopilot -a antigravity --copy -y
+```
+
+Дальше откройте папку в Antigravity IDE и напишите в чате `/autopilot semi <что построить>`. Без человека, из терминала: `python .agents\skills\autopilot\tools\agy-run.py --mode full --project . "<что построить>"`.
+
 ## Как пользоваться
 
 Откройте агента в папке будущего проекта и напишите:
