@@ -75,3 +75,14 @@ Phases are shared with Claude Code. Host-specific behaviour (dispatch, questions
 - No side pane: the dashboard opens in the browser via `Start-Process`.
 - `.agents/skills` is shared with the Codex app (slash vs `$` commands); installing both into one project is not handled.
 - Codex runtime is a stub.
+
+## Live smoke of `agy-run.py` (2026-10-03, `A tiny CLI that prints hello`)
+
+| Mode | Rounds | Time | Exit | Commits | Runtime in state.js |
+|---|---|---|---|---|---|
+| `full` | 1 | 569 s | 0 | plan, T01, final | antigravity |
+| `semi` | 1 | 633 s | 0 | plan, T01, final | antigravity |
+
+- `semi` also finished in one round on this task, so the bare-`/autopilot` resume path of the launcher is **still unexercised live**; it is covered by unit tests only.
+- The launcher prints the raw `stream-json` events to stdout (noisy); the final `result` line carries the summary.
+- No duplicated work or double commits were observed.
